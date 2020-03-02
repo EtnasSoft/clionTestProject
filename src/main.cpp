@@ -492,7 +492,7 @@ void DrawPlayfield(byte bScrollX, byte bScrollY) {
 // Interrupt handler **********************************************
 // Called when encoder value changes
 // Button interrupt, INT0, PB2, pin7
-void moveBackgroundTo(bool increment) {
+void moveBackgroundTo(_Bool increment) {
   // LINEAL
   /*if (increment) {
       backgroundDirection

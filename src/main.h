@@ -1,6 +1,8 @@
 #ifndef MAIN_H
 #define MAIN_H
 
+#include "types.h"
+
 // Prototypes **********************************************
 void gameLoop(void);
 void reloadPlayField();
@@ -22,7 +24,7 @@ void oledFill(unsigned char ucData);
 void DrawShiftedChar(byte *s1, byte *s2, byte *d, byte bXOff, byte bYOff);
 void DrawSprites(byte y, byte *pBuf, GFX_OBJECT *pList, byte bCount);
 void DrawPlayfield(byte bScrollX, byte bScrollY);
-void moveBackgroundTo(bool increment);
+void moveBackgroundTo(_Bool increment);
 void moveBackground();
 void setup();
 void loop();

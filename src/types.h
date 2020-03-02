@@ -10,6 +10,8 @@ typedef struct {
   int y;
 } config_t;
 
+// TODO Build the correct config object.
+
 typedef struct tag_gfx_object {
   byte x;
   byte y;
