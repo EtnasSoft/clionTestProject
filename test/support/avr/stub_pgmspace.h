@@ -1,0 +1,6 @@
+#ifndef CLIONTESTPROJECT_STUBPGMSPACE_H
+#define CLIONTESTPROJECT_STUBPGMSPACE_H
+
+uint8_t pgm_read_byte(uint8_t *addressShort);
+
+#endif // CLIONTESTPROJECT_STUBPGMSPACE_H

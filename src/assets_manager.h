@@ -1,0 +1,5 @@
+#ifndef ASSETS_MANAGER_H
+#define ASSETS_MANAGER_H
+
+
+#endif // ASSETS_MANAGER_H
