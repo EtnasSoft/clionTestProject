@@ -96,6 +96,7 @@
 #ifndef _AVR_IO_H_
 #define _AVR_IO_H_
 
+#include "stub_sfr_defs.h"
 // #include <avr/sfr_defs.h>
 
 
@@ -407,7 +408,7 @@
 // #  endif
 // #endif
 
-// #include <avr/portpins.h>
+#include "stub_portpins.h"
 
 // #include <avr/common.h>
 

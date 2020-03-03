@@ -176,7 +176,7 @@
 #define _SFR_MEM8(mem_addr) _MMIO_BYTE(mem_addr)
 #define _SFR_MEM16(mem_addr) _MMIO_WORD(mem_addr)
 #define _SFR_MEM32(mem_addr) _MMIO_DWORD(mem_addr)
-#define _SFR_IO8(io_addr) _MMIO_BYTE((io_addr) + __SFR_OFFSET)
+#define _SFR_IO8(io_addr) (io_addr)//_MMIO_BYTE((io_addr) + __SFR_OFFSET)
 #define _SFR_IO16(io_addr) _MMIO_WORD((io_addr) + __SFR_OFFSET)
 
 #define _SFR_MEM_ADDR(sfr) ((uint16_t) &(sfr))
@@ -204,7 +204,7 @@
     \note The bit shift is performed by the compiler which then inserts the
     result into the code. Thus, there is no run-time overhead when using
     _BV(). */
-    
+
 #define _BV(bit) (1 << (bit))
 
 /*@}*/
@@ -227,7 +227,7 @@
 
     \code #include <avr/io.h>\endcode
 
-    Test whether bit \c bit in IO register \c sfr is set. 
+    Test whether bit \c bit in IO register \c sfr is set.
     This will return a 0 if the bit is clear, and non-zero
     if the bit is set. */
 
@@ -238,7 +238,7 @@
 
     \code #include <avr/io.h>\endcode
 
-    Test whether bit \c bit in IO register \c sfr is clear. 
+    Test whether bit \c bit in IO register \c sfr is clear.
     This will return non-zero if the bit is clear, and a 0
     if the bit is set. */
 

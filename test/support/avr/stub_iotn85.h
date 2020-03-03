@@ -35,6 +35,8 @@
 #ifndef _AVR_IOTN85_H_
 #define _AVR_IOTN85_H_ 1
 
+#include "stub_iotnx5.h"
+
 /* Constants */
 #define SPM_PAGESIZE 64
 #define RAMSTART     (0x60)
