@@ -18,7 +18,7 @@ void test_delay_microseconds(int delaytime) {
 
 void i2c_hardware_begin(byte addr) {
 //  I2CPORT |= ((1 << SSD1306_SDA) + (1 << SSD1306_SCL));
-  //I2CPORT |= 24; // esto es mio para ir probando...
+  I2CPORT |= ((1 << SSD1306_SDA) + (1 << SSD1306_SCL)); // esto es mio para ir probando...
 //  I2CDDR |= ((1 << SSD1306_SDA) + (1 << SSD1306_SCL));
 //  I2CPORT &= ~(1 << SSD1306_SDA); // data line low first
  delayMicroseconds(SAFE_DELAY);

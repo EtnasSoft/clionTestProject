@@ -156,7 +156,7 @@
 #define DDB1    1
 #define DDB0    0
 
-#define PORTB   _SFR_IO8(0x18)
+//#define PORTB   _SFR_IO8(0x18)
 #define PB5     5
 #define PB4     4
 #define PB3     3
