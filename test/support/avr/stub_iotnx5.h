@@ -148,7 +148,7 @@
 #define PINB1   1
 #define PINB0   0
 
-#define DDRB    _SFR_IO8(0x17)
+//#define DDRB  _SFR_IO8(0x17)
 #define DDB5    5
 #define DDB4    4
 #define DDB3    3
