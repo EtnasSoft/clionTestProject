@@ -12,10 +12,6 @@
 // #include "../test/support/Arduino/wiring.h"
 #endif
 
-void test_delay_microseconds(int delaytime) {
-  delayMicroseconds(delaytime);
-}
-
 void i2c_hardware_begin(byte addr) {
   I2CPORT |= ((1 << SSD1306_SDA) + (1 << SSD1306_SCL));
   I2CDDR |= ((1 << SSD1306_SDA) + (1 << SSD1306_SCL));
@@ -97,5 +93,7 @@ void i2c_hardware_end(void) {
   I2CPORT &= ~(1 << SSD1306_SDA);
   I2CPORT |= (1 << SSD1306_SCL);
   I2CPORT |= (1 << SSD1306_SDA);
-  I2CDDR &= ((1 << SSD1306_SDA) | (1 << SSD1306_SCL)); // let the lines float (tri-state)
+
+  // let the lines float (tri-state)
+  I2CDDR &= ((1 << SSD1306_SDA) | (1 << SSD1306_SCL));
 }
