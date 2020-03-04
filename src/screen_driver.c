@@ -10,6 +10,36 @@
 #include <Arduino.h>
 #endif
 
+/*
+https://github.com/aklomp/attiny85-ssd1306/blob/master/src/ssd1306.c
+https://github.com/ThingPulse/esp8266-oled-ssd1306/blob/master/src/OLEDDisplay.h
+
+Command registers:
+#define SSD1306_SETCONTRAST 		0x81
+#define SSD1306_DISPLAYALLON_RESUME 	0xA4
+#define SSD1306_DISPLAYALLON 		0xA5
+#define SSD1306_NORMALDISPLAY 		0xA6
+#define SSD1306_INVERTDISPLAY 		0xA7
+#define SSD1306_DISPLAYOFF 		0xAE
+#define SSD1306_DISPLAYON 		0xAF
+#define SSD1306_SETDISPLAYOFFSET 	0xD3
+#define SSD1306_SETCOMPINS 		0xDA
+#define SSD1306_SETVCOMDETECT 		0xDB
+#define SSD1306_SETDISPLAYCLOCKDIV 	0xD5
+#define SSD1306_SETPRECHARGE 		0xD9
+#define SSD1306_ENABLE_CHARGE_PUMP	0x8D
+#define SSD1306_SETMULTIPLEX 		0xA8
+#define SSD1306_SETSTARTLINE 		0x40
+#define SSD1306_MEMORYMODE 		0x20
+#define SSD1306_HV_COLUMN_ADDRESS	0x21
+#define SSD1306_HV_PAGE_ADDRESS		0x22
+#define SSD1306_PAM_PAGE_START		0xB0
+#define SSD1306_COMSCANDEC 		0xC8
+#define SSD1306_SEGREMAP 		0xA0
+
+
+*/
+
 void screen_init(int bFlip, int bInvert) {
   unsigned char uc[4];
   // TODO: sacar todos estos valores a #defines, que queda chulo!
