@@ -1,13 +1,15 @@
+/**
+ * https://cdn-shop.adafruit.com/datasheets/SSD1306.pdf
+ */
 #include "types.h"
-#include "config.h"
-#include "i2c_driver.h"
 #include "screen_driver.h"
 
-#ifdef TEST
+#ifndef TEST
+#include "i2c_driver.h"
+#include <Arduino.h>
+#else
 #include "../test/support/avr/stub_io.h"
 #include "../test/support/Arduino/wiring.h"
-#else
-#include <Arduino.h>
 #endif
 
 /*
@@ -40,9 +42,7 @@ Command registers:
 
 */
 
-void screen_init(int bFlip, int bInvert) {
-  unsigned char uc[4];
-  // TODO: sacar todos estos valores a #defines, que queda chulo!
+void screen_driver_init(int flip, int invert) {
   unsigned char oled_initbuf[] = {
       0x00,       // Starting to send a commands sequence or script
       0xAE,       // Display off
@@ -71,54 +71,80 @@ void screen_init(int bFlip, int bInvert) {
 
   i2c_driver_write(oled_initbuf, sizeof(oled_initbuf));
 
-  if (bInvert) {
-    screen_invert();
+  if (invert) {
+    screen_driver_invert();
   }
 
   // rotate display 180
-  if (bFlip) {
-    screen_rotate();
+  if (flip) {
+    screen_driver_rotate();
   }
 }
 
-void screen_invert(void) {
+void screen_driver_invert(void) {
     unsigned char uc[2];
-    uc[0] = 0;    // command
-    uc[1] = 0xa7; // invert command
+    uc[0] = 0x00; // Command Introducer
+    uc[1] = 0xa7; // Inverse Display command
     i2c_driver_write(uc, 2);
 }
 
-void screen_rotate(void) {
+void screen_driver_rotate(void) {
     unsigned char uc[2];
-    uc[0] = 0; // command
-    uc[1] = 0xa0;
+    uc[0] = 0x00; // Command Introducer
+    uc[1] = 0xa0; // Set Segment Remap command
     i2c_driver_write(uc, 2);
 
-    uc[1] = 0xc0;
+    uc[1] = 0xc0; // Set Output Scan Direction
     i2c_driver_write(uc, 2);
 }
 
-void screen_shutdown(void) {
+void screen_driver_write_command(unsigned char c) {
+  unsigned char buf[2];
+  buf[0] = 0x00; // Command Introducer
+  buf[1] = c;
 
+  i2c_driver_write(buf, 2);
 }
 
-void screen_write_command(unsigned char c) {
+void screen_driver_write_command2(unsigned char c, unsigned char d) {
+  unsigned char buf[3];
+  buf[0] = 0x00; // Command Introducer
+  buf[1] = c;
+  buf[2] = d;
 
+  i2c_driver_write(buf, 3);
 }
 
-void screen_write_command2(unsigned char c, unsigned char d) {
-
+void screen_driver_shutdown(void) {
+  screen_driver_write_command(0xAE); // Set Display OFF
 }
 
-void screen_set_contrast(unsigned char ucContrast) {
-
+void screen_driver_set_contrast(unsigned char contrast) {
+  // 256 contrast steps from 00h to FFh
+  screen_driver_write_command2(0x81, contrast); // Set Contrast Control
 }
 
-void screen_set_position(int x, int y) {
-
+void screen_driver_set_position(int x, int y) {
+  /*
+    command_introducer = 0x00;
+    command_start_page_address = 0xb0;
+    command_set_higher_column = 0x10;
+    command_set_lower_column = 0x0F;
+  */
+  screen_driver_write_command(0xb0 | y);                // go to page Y
+  screen_driver_write_command(0x00 | (x & 0xf));        // lower col addr
+  screen_driver_write_command(0x10 | ((x >> 4) & 0xf)); // upper col addr
 }
 
-void screen_fill(unsigned char ucData) {
+void screen_driver_fill(unsigned char data) {
+  int x;
+  unsigned char temp[SCREEN_WIDTH];
 
+  memset(temp, data, SCREEN_WIDTH);
+
+  for (x = 0; x < VIEWPORT_HEIGHT; x++) {
+    screen_driver_set_position(0, x);
+    i2c_driver_write_data(temp, SCREEN_WIDTH);
+  }
 }
 
