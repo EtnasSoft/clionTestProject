@@ -22,10 +22,6 @@ byte backgroundSpeed = 1;
 static byte bPlayfield[PLAYFIELD_ROWS * PLAYFIELD_COLS];
 static int iScrollX, iScrollY;
 
-// In C, we can not have a static array wich size is given as variable.
-#define numberOfSprites 1
-static GFX_OBJECT object_list[numberOfSprites];
-
 // Draw 1 character space that's vertically shifted
 void DrawShiftedChar(byte *s1, byte *s2, byte *d, byte bXOff, byte bYOff) {
   byte c, c2, z;
@@ -257,7 +253,7 @@ void DrawPlayfield(byte bScrollX, byte bScrollY) {
         cIndex = iOffset % (PLAYFIELD_ROWS * PLAYFIELD_COLS);
         c = bPlayfield[cIndex];
         s = (byte *)&ucTiles[(c * MODULE) + bXOff];
-        memcpy_P(d, s, MODULE - bXOff);
+        _memcpy(d, s, MODULE - bXOff);
         d += (MODULE - bXOff);
         bXOff = 0;
         tx++;
@@ -273,11 +269,11 @@ void DrawPlayfield(byte bScrollX, byte bScrollY) {
         iOffset = tx + ty * PLAYFIELD_COLS;
         c = bPlayfield[iOffset];
         s = (byte *)&ucTiles[c * MODULE];
-        memcpy_P(d, s, bXOff);
+        _memcpy(d, s, bXOff);
       }
     }
 
-    //DrawSprites(y * VIEWPORT_HEIGHT, bTemp, object_list, numberOfSprites);
+    //DrawSprites(y * VIEWPORT_HEIGHT, bTemp, object_list, NUMBER_OF_SPRITES);
     // Send it to the display
     screen_driver_set_position(0, y);
     i2c_driver_write_data(bTemp, SCREEN_WIDTH);
@@ -285,6 +281,45 @@ void DrawPlayfield(byte bScrollX, byte bScrollY) {
   }
 }
 
+void reloadPlayField() {
+  byte x, y, *d, bitStart,
+      iStart = iScrollY >> 3;
+
+  for (y = 0; y < PLAYFIELD_ROWS; y++) {
+    bitStart = ((iStart + y) * PLAYFIELD_COLS) % (PLAYFIELD_COLS * PLAYFIELD_ROWS);
+    d = &bPlayfield[bitStart];
+
+    for (x = 0; x < PLAYFIELD_COLS; x++) {
+      _memcpy(d++, &tileMap[((iStart + y + 1) % TILEMAP_HEIGHT)  * PLAYFIELD_COLS + x], 1);
+    }
+  }
+}
+
+void adjustPlayField() {
+  byte *d1, *d2;
+  byte currentRow = (iScrollY >> 3) + (EDGES / 2);
+
+  int playFieldLength = PLAYFIELD_ROWS * PLAYFIELD_COLS;
+
+  int nextPlayfieldBit = (currentRow + VIEWPORT_HEIGHT) * PLAYFIELD_COLS,
+      cNextPlayfieldBit = nextPlayfieldBit % playFieldLength,
+      cNextRow = (currentRow + VIEWPORT_HEIGHT + 1) % TILEMAP_HEIGHT;
+
+  int prevPlayfieldBit = currentRow * PLAYFIELD_COLS,
+      cPrevPlayfieldBit = prevPlayfieldBit % playFieldLength,
+      cPrevRow = (currentRow + 1) % TILEMAP_HEIGHT;
+
+  d1 = &bPlayfield[cNextPlayfieldBit];
+  d2 = &bPlayfield[cPrevPlayfieldBit];
+
+  // The formula for get [y][x] in a linear array (1D) is:
+  // y * COLS + x
+  // Note that y must be `1 index`.
+  for (byte x1 = 0; x1 < PLAYFIELD_COLS; x1++) {
+    _memcpy(d1 + x1, &tileMap[cNextRow * PLAYFIELD_COLS + x1], 1);
+    _memcpy(d2 + x1, &tileMap[cPrevRow * PLAYFIELD_COLS + x1], 1);
+  }
+}
 
 // Interrupt handler **********************************************
 // Called when encoder value changes
@@ -315,6 +350,9 @@ void moveBackgroundTo(_Bool increment) {
   }
 }
 
+// TODO
+// Esto deberia ser un metodo 'read_spinner' de un fichero spinner.c y desde ahí, llamar al controls.h:
+// if (a==b) { controls_move_background_to_left(); } else { controls_move_background_to_right(); }
 void moveBackground() {
   int a = PINB>>EncoderA & 1;
   int b = PINB>>EncoderB & 1;
@@ -340,11 +378,11 @@ void setup() {
 
   reloadPlayField();
 
-  memset(object_list, 0, sizeof(object_list));
+  /*memset(object_list, 0, sizeof(object_list));
 
   object_list[0].bType = 0x80; // big sprite
   object_list[0].x = 14;
-  object_list[0].y = 40;
+  object_list[0].y = 40;*/
 }
 
 void loop() {
@@ -352,13 +390,28 @@ void loop() {
   int speed = 0;
 
   while (1) {
+    if (backgroundDirection) {
+      iScrollX += backgroundSpeed;
+      iScrollY += backgroundSpeed;
+    } else {
+      iScrollX -= backgroundSpeed;
+      iScrollY -= backgroundSpeed;
+    }
+
+
     DrawPlayfield(iScrollX, iScrollY);
 
     // Desde aquí se puede definir la velocidad a la que responde el juego:
     // Estaría bien sacar el valor a una variable:
     // (++speed % 3) => Modulo 3 (33% speed)
     // (++speed & 3) => Modulo 4 (25% speed)
-    if ((++speed % 3) == 0) { // Modulo 3 (33% speed)
+
+    //if ((++speed % 3) == 0) { // Modulo 3 (33% speed)
+    if (1 == 1) { // Modulo 3 (33% speed)
+      if (speed > 10000) {
+        speed = 0;
+      }
+
       if (iScrollX >= PLAYFIELD_COLS * MODULE) {
         iScrollX = 0;
         reloadPlayField();
@@ -379,45 +432,5 @@ void loop() {
         backgroundDirection = !backgroundDirection;
       }
     }
-  }
-}
-
-void reloadPlayField() {
-  byte x, y, *d, bitStart,
-      iStart = iScrollY >> 3;
-
-  for (y = 0; y < PLAYFIELD_ROWS; y++) {
-    bitStart = ((iStart + y) * PLAYFIELD_COLS) % (PLAYFIELD_COLS * PLAYFIELD_ROWS);
-    d = &bPlayfield[bitStart];
-
-    for (x = 0; x < PLAYFIELD_COLS; x++) {
-      memcpy_P(d++, &tileMap[((iStart + y + 1) % TILEMAP_HEIGHT)  * PLAYFIELD_COLS + x], 1);
-    }
-  }
-}
-
-void adjustPlayField() {
-  byte *d1, *d2;
-  byte currentRow = (iScrollY >> 3) + (EDGES / 2);
-
-  int playFieldLength = PLAYFIELD_ROWS * PLAYFIELD_COLS;
-
-  int nextPlayfieldBit = (currentRow + VIEWPORT_HEIGHT) * PLAYFIELD_COLS,
-      cNextPlayfieldBit = nextPlayfieldBit % playFieldLength,
-      cNextRow = (currentRow + VIEWPORT_HEIGHT + 1) % TILEMAP_HEIGHT;
-
-  int prevPlayfieldBit = currentRow * PLAYFIELD_COLS,
-      cPrevPlayfieldBit = prevPlayfieldBit % playFieldLength,
-      cPrevRow = (currentRow + 1) % TILEMAP_HEIGHT;
-
-  d1 = &bPlayfield[cNextPlayfieldBit];
-  d2 = &bPlayfield[cPrevPlayfieldBit];
-
-  // The formula for get [y][x] in a linear array (1D) is:
-  // y * COLS + x
-  // Note that y must be `1 index`.
-  for (byte x1 = 0; x1 < PLAYFIELD_COLS; x1++) {
-      memcpy_P(d1 + x1, &tileMap[cNextRow * PLAYFIELD_COLS + x1], 1);
-      memcpy_P(d2 + x1, &tileMap[cPrevRow * PLAYFIELD_COLS + x1], 1);
   }
 }

@@ -2,6 +2,7 @@
 #include "mock_i2c_driver.h"
 #include "screen_driver.h"
 #include "unity.h"
+#include <string.h>
 
 int flip;
 int invert;

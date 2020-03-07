@@ -3,21 +3,18 @@
 
 #include <stdint.h>
 
-typedef uint8_t byte;
+// TEST DEFINES
+// ////////////////////////////////////////////////////////////////////
+#ifdef TEST
+#define _PROGMEM
+#define _memcpy memcpy
+#else
+#define _PROGMEM PROGMEM
+#define _memcpy memcpy_P
+#endif
 
-typedef struct {
-  int x;
-  int y;
-} config_t;
-
-// TODO Build the correct config object.
-
-typedef struct tag_gfx_object {
-  byte x;
-  byte y;
-  byte bType;
-} GFX_OBJECT;
-
+// DEFINES
+// ////////////////////////////////////////////////////////////////////
 #define SSD1306_SCL PORTB4 // SCL, Pin 3
 #define SSD1306_SDA PORTB3 // SDA, Pin 2
 #define SSD1306_SA 0x3C // Slave Address
@@ -43,5 +40,45 @@ typedef struct tag_gfx_object {
 
 // A bit set to 1 in the DDR is an output, 0 is an INPUT
 #define I2CDDR DDRB
+#define NUMBER_OF_SPRITES 1
+
+
+// TYPEDEFS
+// ////////////////////////////////////////////////////////////////////
+typedef uint8_t byte;
+
+// Define the structure of the config
+typedef struct {
+  int x;
+  int y;
+} config_t;
+
+// Define the structure of the FX Objects
+typedef struct tag_gfx_object {
+  byte x;
+  byte y;
+  byte bType;
+} GFX_OBJECT;
+
+// Define the structure of the background
+typedef struct background_game_typ {
+  int x;
+  int y;
+  byte speed;
+  _Bool direction;
+  byte data[PLAYFIELD_ROWS * PLAYFIELD_COLS];
+} background_game, *background_game_ptr;
+
+typedef struct map_game_typ {
+  byte width;
+  byte height;
+  byte *data;
+} map_game, *map_game_ptr;
+
+// GLOBALS
+// ////////////////////////////////////////////////////////////////////
+background_game background;
+map_game map;
+//static GFX_OBJECT object_list[NUMBER_OF_SPRITES];
 
 #endif // CLIONTESTPROJECT_TYPES_H

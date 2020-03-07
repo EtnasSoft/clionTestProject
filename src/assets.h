@@ -5,14 +5,14 @@
 
 // 8x8px sprite: phantom (Pac Man)
 // 8 bytes of mask followed by 8 bytes of pattern
-const byte ucSprites[] PROGMEM = {
+const byte ucSprites[] _PROGMEM = {
     0x7C, 0xF6, 0x66, 0xFF, 0x7F, 0xF6, 0x66, 0xFC,
     0x7C, 0xF6, 0x66, 0xFF, 0x7F, 0xF6, 0x66, 0xFC
 };
 
 // 16x16px Mario Bros
 // 32 bytes of mask followed by 32 bytes of pattern
-const byte ucBigSprites[] PROGMEM = {
+const byte ucBigSprites[] _PROGMEM = {
     0xff, 0xff, 0xff, 0x0f, 0x07, 0x03, 0x03, 0x03,
     0x03, 0x03, 0x07, 0x07, 0xaf, 0xff, 0xff, 0xff,
     0xff, 0x73, 0x21, 0x00, 0x00, 0x00, 0x00, 0x80,
@@ -24,7 +24,7 @@ const byte ucBigSprites[] PROGMEM = {
     0x3c, 0xf2, 0xdc, 0x80, 0x00, 0x00, 0x00, 0x00,
 };
 
-const byte ucTiles[] PROGMEM = {
+const byte ucTiles[] _PROGMEM = {
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // Empty  (0)
     0xaa, 0xc1, 0xe8, 0xd5, 0xe8, 0xd5, 0xbe, 0x7f, // Brick (for demo!)
     0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, // Fill   (1)
@@ -51,7 +51,9 @@ const byte ucTiles[] PROGMEM = {
 };
 
 // TODO: HEIGHT and WIDTH have to be the first two values of the array, like in Arduboy system...
-const byte tileMap[TILEMAP_HEIGHT * TILEMAP_WIDTH] PROGMEM = {
+const byte tileMap[TILEMAP_HEIGHT * TILEMAP_WIDTH] _PROGMEM = {
+
+
     /* 00 */ 0,  1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  0,
     /* 01 */ 0,  1,  1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  0,
     /* 02 */ 0,  1,  1,  1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  0,
