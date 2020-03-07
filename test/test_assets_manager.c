@@ -16,8 +16,8 @@ void setUp(void) {
 void tearDown(void) {}
 
 void test_assets_manager_map_init_should_be_create_the_map() {
-  pgm_read_byte_ExpectWithArrayAndReturn((byte *) &level_1[0], 1, level_1[0]);
-  pgm_read_byte_ExpectWithArrayAndReturn((byte *) &level_1[1], 1, level_1[1]);
+  pgm_read_byte_ExpectWithArrayAndReturn((byte *)&level_1[0], 1, level_1[0]);
+  pgm_read_byte_ExpectWithArrayAndReturn((byte *)&level_1[1], 1, level_1[1]);
 
   assets_manager_map_init(&map, levels[0]);
 
@@ -27,7 +27,7 @@ void test_assets_manager_map_init_should_be_create_the_map() {
 #ifdef EMULATOR
   printf("Map height: %i\n", map.height);
   printf("Map width: %i\n", map.width);
-  for(int x = 0; x < (map.width * map.height); x++) {
+  for (int x = 0; x < (map.width * map.height); x++) {
     printf("%i", map.data[x]);
     if (x > 0 && (x + 1) % map.width == 0) {
       printf("\n");
@@ -35,12 +35,10 @@ void test_assets_manager_map_init_should_be_create_the_map() {
       printf(", ");
     }
   }
-}
 #endif
+}
 
 void test_assets_manager_map_load_should_be_load_the_given_map_data() {
 //  assets_manager_map_init(&map, levels[0]);
 //  assets_manager_load_map(levels[1]);
-
-
 }
