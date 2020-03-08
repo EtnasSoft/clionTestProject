@@ -5,9 +5,10 @@
 #include "screen_driver.h"
 
 #ifndef TEST
-#include "i2c_driver.h"
 #include <Arduino.h>
+#include "i2c_driver.h"
 #else
+#include <string.h>
 #include "../test/support/avr/stub_io.h"
 #include "../test/support/Arduino/wiring.h"
 #endif

@@ -326,18 +326,20 @@ void adjustPlayField() {
 // Button interrupt, INT0, PB2, pin7
 void moveBackgroundTo(_Bool increment) {
   // LINEAL
-  /*if (increment) {
-      backgroundDirection
-        ? iScrollX += backgroundSpeed
-        : iScrollY += backgroundSpeed;
+  if (increment) {
+//    iScrollX += backgroundSpeed;
+    iScrollY = backgroundDirection
+      ? iScrollY + backgroundSpeed
+      : iScrollY - backgroundSpeed;
   } else {
-      backgroundDirection
-        ? iScrollX -= backgroundSpeed
-        : iScrollY -= backgroundSpeed;
-  }*/
+//    iScrollX -= backgroundSpeed;
+    iScrollY = backgroundDirection
+      ? iScrollY - backgroundSpeed
+      : iScrollY + backgroundSpeed;
+  }
 
   // DIAGONAL
-  if (increment) {
+  /*if (increment) {
     iScrollY += backgroundSpeed;
     iScrollX = backgroundDirection
                ? iScrollX + backgroundSpeed
@@ -347,7 +349,7 @@ void moveBackgroundTo(_Bool increment) {
     iScrollX = backgroundDirection
                ? iScrollX - backgroundSpeed
                : iScrollX + backgroundSpeed;
-  }
+  }*/
 }
 
 // TODO
@@ -391,11 +393,11 @@ void loop() {
 
   while (1) {
     if (backgroundDirection) {
-      iScrollX += backgroundSpeed;
-      iScrollY += backgroundSpeed;
+      //iScrollX += backgroundSpeed;
+//      iScrollY += backgroundSpeed;
     } else {
-      iScrollX -= backgroundSpeed;
-      iScrollY -= backgroundSpeed;
+      //iScrollX -= backgroundSpeed;
+//      iScrollY -= backgroundSpeed;
     }
 
 

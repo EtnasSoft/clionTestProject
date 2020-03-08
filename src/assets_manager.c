@@ -8,5 +8,6 @@
 void assets_manager_map_init(map_game_ptr map, byte *level) {
   map->width = pgm_read_byte(level);
   map->height = pgm_read_byte(++level);
+  map->size = map->width * map->height;
   map->data = ++level;
 }
