@@ -116,7 +116,7 @@ void test_engine_background_reload_at_final_position_should_relocate_the_proper_
   }
 #ifdef EMULATOR
   //helpers_print_map(&map);
-  //helpers_print_background(&background, &map);
+  helpers_print_background(&background, &map);
 #endif
 }
 
@@ -138,6 +138,6 @@ void test_engine_background_adjust_should_relocate_bytes_into_screen(void) {
 
 #ifdef EMULATOR
 //  helpers_print_map(&map);
-  helpers_print_background(&background, &map);
+  // helpers_print_background(&background, &map);
 #endif
 }

@@ -20,7 +20,8 @@ const background_game *engine_background_get(void) {
   return &background;
 }
 
-// Adjust the background to screen filling it with the correct data
+// Pinta en la pantalla la porcion media del background:
+// desde la fila 1 (la 0 es buffer) a la 8 (la 9 es buffer también).
 void engine_background_reload(background_game_ptr background, map_game_ptr map) {
   byte x, y, *d, bit_start,
       start = background->y >> 3;
@@ -29,8 +30,6 @@ void engine_background_reload(background_game_ptr background, map_game_ptr map) 
     bit_start = ((start + y) * SCREEN_BUFFER_WIDTH) % SCREEN_BUFFER_SIZE;
     d = &background->data[bit_start];
 
-    // Aqui he puesto el '+ 0' porque me parece que es lo que tiene sentido, pero en el codigo real
-    // era necesario poner un 1... Incluso en el repl.it puse 0 y es como funciona... :/
     uint16_t first_byte = ((start + y + 0) % map->height) * SCREEN_BUFFER_WIDTH;
     for (x = 0; x < SCREEN_BUFFER_WIDTH; x++) {
       _memcpy(d++, &map->data[first_byte + x], 1);
@@ -38,6 +37,7 @@ void engine_background_reload(background_game_ptr background, map_game_ptr map) 
   }
 }
 
+// Ajustamos el background
 void engine_background_adjust(background_game_ptr background, map_game_ptr map) {
   byte *d1, *d2;
   byte current_row = (background->y >> 3) + (EDGES / 2);
@@ -50,8 +50,14 @@ void engine_background_adjust(background_game_ptr background, map_game_ptr map) 
       c_prev_playfield_bit = prev_playfield_bit % SCREEN_BUFFER_SIZE,
       c_prev_row = (current_row + 1) % TILEMAP_HEIGHT;
 
+  // Pintamos las filas que quedan fuera de la pantall tanto por arriba, como por abajo.
+  // Igual es momento de cambiar esta estrategia...
   d1 = &background->data[c_next_playfield_bit];
   d2 = &background->data[c_prev_playfield_bit];
+
+  printf("current_row: %i\nnext_playfield_bit: %i\nprev_playfield_bit: %i\n",
+  current_row, next_playfield_bit, prev_playfield_bit);
+
 
   for (byte x1 = 0; x1 < SCREEN_BUFFER_WIDTH; x1++) {
     _memcpy(d1 + x1, &map->data[c_next_row * SCREEN_BUFFER_WIDTH + x1], 1);
