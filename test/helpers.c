@@ -19,7 +19,7 @@ void helpers_print_map(map_game_ptr map) {
   printf("-----------------------------------------------------\n\n");
 }
 
-void helpers_print_background(background_game_ptr background, map_game_ptr map) {
+/*void helpers_print_background(background_game_ptr background, map_game_ptr map) {
   printf("Background X: %i\n", background->x);
   printf("Background Y: %i\n", background->y);
   printf("Background iStart: %i\n", background->y >> 3);
@@ -38,3 +38,4 @@ void helpers_print_background(background_game_ptr background, map_game_ptr map) 
 
   printf("-----------------------------------------------------\n\n");
 }
+*/

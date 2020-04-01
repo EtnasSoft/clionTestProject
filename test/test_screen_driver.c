@@ -11,7 +11,7 @@ int number_of_init_commands;
 void setUp(void) {
   flip = 0;
   invert = 0;
-  number_of_init_commands = 22;
+  number_of_init_commands = 33;
 }
 
 void tearDown(void) {}

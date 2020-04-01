@@ -7,14 +7,11 @@ byte slave_address;
 byte data[4];
 
 void setUp(void) {
-    slave_address = 0x3C;
+  slave_address = 0x3C;
+  i2c_driver_init(slave_address);
 }
 
 void tearDown(void) {}
-
-void test_i2c_driver_NeedToImplement(void) {
-  TEST_IGNORE_MESSAGE("Need to Implement i2c_driver");
-}
 
 void test_i2c_driver_write_should_run_the_correct_sequence(void) {
     int datalen = 2;

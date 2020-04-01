@@ -2,6 +2,7 @@
 #define CLIONTESTPROJECT_TYPES_H
 
 #include <stdint.h>
+#include <stdlib.h>
 
 // TEST DEFINES
 // ////////////////////////////////////////////////////////////////////
@@ -19,7 +20,7 @@
 // ////////////////////////////////////////////////////////////////////
 #define SSD1306_SCL PORTB4 // SCL, Pin 3
 #define SSD1306_SDA PORTB3 // SDA, Pin 2
-#define SSD1306_SA 0x3C // Slave Address
+#define SSD1306_SA 0x3C // Slave Address (60)
 
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 64
@@ -30,16 +31,21 @@
 #define VIEWPORT_HEIGHT SCREEN_HEIGHT / MODULE    // 8
 
 // MAXIMUM: 16rows x 18cols => 288 byte + 128 byte (SSD1306 page)
-#define PLAYFIELD_COLS (VIEWPORT_WIDTH + EDGES) // AXIS X: vertical cols, map width size; min 16+2 (SCREEN_WIDTH / 8) + Edges
-#define PLAYFIELD_ROWS (VIEWPORT_HEIGHT + EDGES) // AXIS Y: horizontal rows, map height size; min 8+2 (SCREEN_HEIGHT / 8) + Edges
+#define PLAYFIELD_WIDTH (VIEWPORT_WIDTH + EDGES) // AXIS X: vertical cols, map width size; min 16+2 (SCREEN_WIDTH / 8) + Edges
+#define PLAYFIELD_HEIGHT (VIEWPORT_HEIGHT + EDGES) // AXIS Y: horizontal rows, map height size; min 8+2 (SCREEN_HEIGHT / 8) + Edges
+#define PLAYFIELD_SIZE (PLAYFIELD_WIDTH * PLAYFIELD_HEIGHT) // AXIS Y: horizontal rows, map height size; min 8+2 (SCREEN_HEIGHT / 8) + Edges
+
+#define TILEMAP_MAX_HEIGHT_SCROLL ((TILEMAP_HEIGHT - 1) * MODULE) + 7 // 248
+#define TILEMAP_MAX_WIDTH_SCROLL ((TILEMAP_WIDTH - 1) * MODULE) + 7 // 248
 
 // ALIAS
-#define SCREEN_BUFFER_WIDTH PLAYFIELD_COLS
-#define SCREEN_BUFFER_HEIGHT PLAYFIELD_ROWS
-#define SCREEN_BUFFER_SIZE (PLAYFIELD_COLS * PLAYFIELD_ROWS)
+#define SCREEN_BUFFER_WIDTH PLAYFIELD_WIDTH    // 18
+#define SCREEN_BUFFER_HEIGHT PLAYFIELD_HEIGHT   // 10
+#define SCREEN_BUFFER_SIZE PLAYFIELD_SIZE // 180
 
-#define TILEMAP_HEIGHT 29
-#define TILEMAP_WIDTH PLAYFIELD_COLS
+#define TILEMAP_HEIGHT 32
+#define TILEMAP_WIDTH 32
+#define TILEMAP_SIZE (TILEMAP_HEIGHT * TILEMAP_WIDTH)
 
 #define DIRECT_PORT
 #define I2CPORT PORTB
@@ -74,9 +80,10 @@ typedef struct tag_gfx_object {
 typedef struct background_game_typ {
   int x;
   int y;
+  int old_x;
+  int old_y;
   byte speed;
   _Bool direction;
-  byte data[SCREEN_BUFFER_SIZE];
 } background_game, *background_game_ptr;
 
 typedef struct map_game_typ {
@@ -88,7 +95,10 @@ typedef struct map_game_typ {
 
 // GLOBALS
 // ////////////////////////////////////////////////////////////////////
+// Define the background
 background_game background;
+
+// Define the map
 map_game map;
 //static GFX_OBJECT object_list[NUMBER_OF_SPRITES];
 

@@ -4,10 +4,10 @@
 void engine_background_init(background_game_ptr background) {
   background->x = 0;
   background->y = 0;
-  background->speed = 0;
+  background->old_x = 0;
+  background->old_y = 0;
+  background->speed = 1;
   background->direction = 0;
-
-  memset(&background->data[0], 0, sizeof(background->data));
 }
 
 int engine_background_set(const background_game *new_background_config) {
@@ -21,7 +21,7 @@ const background_game *engine_background_get(void) {
 }
 
 // Adjust the background to screen filling it with the correct data
-void engine_background_reload(background_game_ptr background, map_game_ptr map) {
+/*void engine_background_reload(background_game_ptr background, map_game_ptr map) {
   byte x, y, *d, bit_start,
       start = background->y >> 3;
 
@@ -36,9 +36,9 @@ void engine_background_reload(background_game_ptr background, map_game_ptr map) 
       _memcpy(d++, &map->data[first_byte + x], 1);
     }
   }
-}
+}*/
 
-void engine_background_adjust(background_game_ptr background, map_game_ptr map) {
+/*void engine_background_adjust(background_game_ptr background, map_game_ptr map) {
   byte *d1, *d2;
   byte current_row = (background->y >> 3) + (EDGES / 2);
 
@@ -57,21 +57,7 @@ void engine_background_adjust(background_game_ptr background, map_game_ptr map) 
     _memcpy(d1 + x1, &map->data[c_next_row * SCREEN_BUFFER_WIDTH + x1], 1);
     _memcpy(d2 + x1, &map->data[c_prev_row * SCREEN_BUFFER_WIDTH + x1], 1);
   }
-}
-
-void engine_background_draw(background_game_ptr background) {
-  /*byte bTemp[SCREEN_WIDTH]; // holds data for the current scan line
-  byte x, y, tx;
-  int ty, bXOff, bYOff;
-  byte c, *s, *sNext, *d;
-  int iOffset, iOffset2, cIndex, cIndex2;
-
-  // Solo es cero cuando el scroll completa un MODULO su eje X (8 unidades)
-  bXOff = background->x & (MODULE - 1);
-  bYOff = background->y & (MODULE - 1);
-
-  // Incrementa una unidad cada vez que el scroll completa un MODULO en Y
-  ty = (background->y >> 3) + (EDGES / 2);
-
-  engine_background_adjust(&background, &map);*/
-}
+}*/
+void engine_background_reload(background_game_ptr background, map_game_ptr map) {}
+void engine_background_adjust(background_game_ptr background, map_game_ptr map) {}
+void engine_background_draw(background_game_ptr background) {}

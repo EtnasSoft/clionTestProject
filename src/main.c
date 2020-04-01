@@ -6,21 +6,22 @@
 #include "i2c_driver.h"
 #include "i2c_hardware.h"
 #include "screen_driver.h"
+#include "engine.h"
+#include "assets_manager.h"
+#include "controls.h"
 
 // Rotary encoder **********************************************
 #define EncoderClick A0 // A0 PB5, pin 1 (RESET)
 const int EncoderA = 2; // PB2, pin 7 (INT0)
 const int EncoderB = 1; // PB1, pin 6
 
+// For interrupt:
 volatile int a0;
 volatile int c0;
 
 // Player and Game vars **********************************************
-bool backgroundDirection = 0;
-byte backgroundSpeed = 1;
+byte background_data[PLAYFIELD_SIZE];
 
-static byte bPlayfield[PLAYFIELD_ROWS * PLAYFIELD_COLS];
-static int iScrollX, iScrollY;
 
 // Draw 1 character space that's vertically shifted
 void DrawShiftedChar(byte *s1, byte *s2, byte *d, byte bXOff, byte bYOff) {
@@ -160,21 +161,16 @@ void DrawSprites(byte y, byte *pBuf, GFX_OBJECT *pList, byte bCount) {
 }
 
 // Draw the playfield and sprites
-void DrawPlayfield(byte bScrollX, byte bScrollY) {
-  byte bTemp[SCREEN_WIDTH]; // holds data for the current scan line
-  byte x, y, tx;
-  int ty, bXOff, bYOff;
-  byte c, *s, *sNext, *d;
-  int iOffset, iOffset2, cIndex, cIndex2;
+void DrawPlayField(background_game background) {
+  byte x, y, tx, c, *s, *sNext, *d,
+      bTemp[SCREEN_WIDTH];
 
-  // Solo es cero cuando el scroll completa un MODULO su eje X (8 unidades)
-  bXOff = bScrollX & (MODULE - 1);
-  bYOff = bScrollY & (MODULE - 1);
+  int ty, bXOff, bYOff, iOffset, iOffset2;
 
-  // Incrementa una unidad cada vez que el scroll completa un MODULO en Y
-  ty = (bScrollY >> 3) + (EDGES / 2);
+  bXOff = background.x & 7;
+  bYOff = background.y & 7;
 
-  adjustPlayField();
+  ty = background.y >> 3;
 
   // -------------------------------------------------------
 
@@ -182,38 +178,35 @@ void DrawPlayfield(byte bScrollX, byte bScrollY) {
   for (y = 0; y < VIEWPORT_HEIGHT; y++) {
     memset(bTemp, 0, sizeof(bTemp));
 
-    if (ty >= PLAYFIELD_ROWS) {
-      ty -= PLAYFIELD_ROWS;
-    }
-
-    tx = (bScrollX >> 3) + (EDGES / 2);
+    ty = ty % PLAYFIELD_HEIGHT;
+    tx = background.x >> 3;
 
     // Draw the playfield characters at the given scroll position
     d = bTemp;
 
-    // partial characters vertically means a lot more work :(
-    // Only for vertical scroll:
     if (bYOff) {
       for (x = 0; x < VIEWPORT_WIDTH; x++) {
-        if (tx >= PLAYFIELD_COLS) {
-          tx -= PLAYFIELD_COLS; // wrap around
+        if (tx >= PLAYFIELD_WIDTH) {
+          tx -= PLAYFIELD_WIDTH; // wrap around
         }
 
-        iOffset = (tx + ty * PLAYFIELD_COLS);
-        iOffset2 = (iOffset + PLAYFIELD_COLS); // next line
+        iOffset = tx + (ty * PLAYFIELD_WIDTH);
 
-        if (iOffset2 >= (PLAYFIELD_ROWS * PLAYFIELD_COLS)) {    // past bottom
-          iOffset2 -= (PLAYFIELD_ROWS * PLAYFIELD_COLS);
+        if (iOffset >= PLAYFIELD_SIZE) {    // past bottom
+          iOffset -= PLAYFIELD_SIZE;
         }
 
-        cIndex = iOffset % (PLAYFIELD_ROWS * PLAYFIELD_COLS);
-        c = bPlayfield[cIndex];
+        iOffset2 = (iOffset + PLAYFIELD_WIDTH); // next line
+
+        if (iOffset2 >= PLAYFIELD_SIZE) {    // past bottom
+          iOffset2 -= PLAYFIELD_SIZE;
+        }
+
+        c = background_data[iOffset];
         s = (byte *)&ucTiles[(c * MODULE) + bXOff];
 
-        cIndex2 = iOffset2 % (PLAYFIELD_ROWS * PLAYFIELD_COLS);
-        c = bPlayfield[cIndex2];
+        c = background_data[iOffset2];
         sNext = (byte *)&ucTiles[(c * MODULE) + bXOff];
-        // ------------------------------------------------------------------------------
 
         DrawShiftedChar(s, sNext, d, bXOff, bYOff);
 
@@ -225,55 +218,70 @@ void DrawPlayfield(byte bScrollX, byte bScrollY) {
       // partial character left to draw
       if (d != &bTemp[SCREEN_WIDTH]) {
         bXOff = (byte)(&bTemp[SCREEN_WIDTH] - d);
-        if (tx >= PLAYFIELD_COLS)
-          tx -= PLAYFIELD_COLS;
-        iOffset = tx + ty * PLAYFIELD_COLS;
-        iOffset2 = iOffset + PLAYFIELD_COLS; // next line
-        if (iOffset2 >= (PLAYFIELD_ROWS * PLAYFIELD_COLS))     // past bottom
-          iOffset2 -= (PLAYFIELD_ROWS * PLAYFIELD_COLS);
-        c = bPlayfield[iOffset];
+
+        if (tx >= PLAYFIELD_WIDTH) {
+          tx -= PLAYFIELD_WIDTH;
+        }
+
+        iOffset = tx + ty * PLAYFIELD_WIDTH;
+        iOffset2 = iOffset + PLAYFIELD_WIDTH; // next line
+
+        if (iOffset2 >= PLAYFIELD_SIZE) {    // past bottom
+          iOffset2 -= PLAYFIELD_SIZE;
+        }
+
+        c = background_data[iOffset];
         s = (byte *)&ucTiles[c * MODULE];
-        c = bPlayfield[iOffset2];
+
+        c = background_data[iOffset2];
         sNext = (byte *)&ucTiles[c * MODULE];
+
         DrawShiftedChar(s, sNext, d, MODULE - bXOff, bYOff);
       }
       // simpler case of vertical offset of 0 for each character
     } else {
       //-----------------------------------
-      // NON BYOFF; SCREEN BYTE COMPLETED!
+      // NON BYOFF; SCROLL BLOCK COMPLETED!
       //-----------------------------------
 
       // Filling each col of the SCREEN_WIDTH
       for (x = 0; x < VIEWPORT_WIDTH; x++) {
-        if (tx >= PLAYFIELD_COLS) {
-          tx -= PLAYFIELD_COLS;
+        if (tx >= PLAYFIELD_WIDTH) {
+          tx -= PLAYFIELD_WIDTH;
         }
 
-        iOffset = tx + (ty * PLAYFIELD_COLS);
-        cIndex = iOffset % (PLAYFIELD_ROWS * PLAYFIELD_COLS);
-        c = bPlayfield[cIndex];
+        iOffset = tx + (ty * PLAYFIELD_WIDTH);
+
+        if (iOffset >= PLAYFIELD_SIZE) {    // past bottom
+          iOffset -= PLAYFIELD_SIZE;
+        }
+
+        c = background_data[iOffset];
         s = (byte *)&ucTiles[(c * MODULE) + bXOff];
-        _memcpy(d, s, MODULE - bXOff);
+        memcpy_P(d, s, MODULE - bXOff);
+
         d += (MODULE - bXOff);
         bXOff = 0;
+
         tx++;
       }
 
       // partial character left to draw
-      // De momento el codigo no pasa por aqui.
       if (d != &bTemp[SCREEN_WIDTH]) {
         bXOff = (byte)(&bTemp[SCREEN_WIDTH] - d);
-        if (tx >= PLAYFIELD_COLS) {
-          tx -= PLAYFIELD_COLS;
+
+        if (tx >= PLAYFIELD_WIDTH) {
+          tx -= PLAYFIELD_WIDTH;
         }
-        iOffset = tx + ty * PLAYFIELD_COLS;
-        c = bPlayfield[iOffset];
+
+        iOffset = tx + ty * PLAYFIELD_WIDTH;
+
+        c = background_data[iOffset];
         s = (byte *)&ucTiles[c * MODULE];
-        _memcpy(d, s, bXOff);
+        memcpy_P(d, s, bXOff);
       }
     }
 
-    //DrawSprites(y * VIEWPORT_HEIGHT, bTemp, object_list, NUMBER_OF_SPRITES);
     // Send it to the display
     screen_driver_set_position(0, y);
     i2c_driver_write_data(bTemp, SCREEN_WIDTH);
@@ -281,43 +289,116 @@ void DrawPlayfield(byte bScrollX, byte bScrollY) {
   }
 }
 
-void reloadPlayField() {
-  byte x, y, *d, bitStart,
-      iStart = iScrollY >> 3;
+void reloadPlayField(void) {
+  byte x, y, currentPlayFieldByte, nextPlayFieldByte,
+      currentRow = background.y >> 3,
+      currentCol = background.x >> 3,
+      offsetCol = currentCol % PLAYFIELD_WIDTH;
 
-  for (y = 0; y < PLAYFIELD_ROWS; y++) {
-    bitStart = ((iStart + y) * PLAYFIELD_COLS) % (PLAYFIELD_COLS * PLAYFIELD_ROWS);
-    d = &bPlayfield[bitStart];
+  uint16_t nextTileByte;
 
-    for (x = 0; x < PLAYFIELD_COLS; x++) {
-      _memcpy(d++, &tileMap[((iStart + y + 1) % TILEMAP_HEIGHT)  * PLAYFIELD_COLS + x], 1);
+  for (y = 0; y < PLAYFIELD_HEIGHT; y++) {
+    currentPlayFieldByte = ((currentRow + y) * PLAYFIELD_WIDTH) % PLAYFIELD_SIZE;
+    currentPlayFieldByte += offsetCol;
+
+    nextPlayFieldByte = currentPlayFieldByte;
+
+    // Use the fact that 32 * x = x << 5
+    nextTileByte = ((currentRow + y) % TILEMAP_HEIGHT) << 5;
+    nextTileByte += currentCol;
+
+    for (x = 0; x < PLAYFIELD_WIDTH; x++) {
+      memcpy_P(&background_data[nextPlayFieldByte++], &map.data[nextTileByte++], 1);
+
+      if ((nextPlayFieldByte % PLAYFIELD_WIDTH) == 0) {
+        nextPlayFieldByte -= PLAYFIELD_WIDTH;
+      }
+
+      if ((nextTileByte % TILEMAP_WIDTH) == 0) {
+        nextTileByte -= TILEMAP_WIDTH;
+      }
+    }
+  }
+
+  DrawPlayField(background);
+}
+
+void adjustPlayFieldRows(void) {
+  int currentRow = background.y >> 3,
+      currentCol = background.x >> 3,
+      offsetCol = currentCol % PLAYFIELD_WIDTH,
+      offsetRow = currentRow % PLAYFIELD_HEIGHT,
+
+      prevPlayFieldRow = (offsetRow == 0 ? PLAYFIELD_HEIGHT : offsetRow) - 1,
+      nextPlayFieldRow = (offsetRow + VIEWPORT_HEIGHT) % PLAYFIELD_HEIGHT,
+      prevPlayFieldByte = prevPlayFieldRow * PLAYFIELD_WIDTH,
+      nextPlayFieldByte = nextPlayFieldRow * PLAYFIELD_WIDTH;
+
+  // Tiles
+  int prevTileRow = ((currentRow == 0 ? TILEMAP_HEIGHT : currentRow) - 1) * TILEMAP_WIDTH,
+      nextTileRow = ((currentRow + VIEWPORT_HEIGHT) % TILEMAP_HEIGHT) * TILEMAP_WIDTH,
+      nextTileByte,
+      prevTileByte,
+      carry;
+
+  if (prevPlayFieldByte >= PLAYFIELD_SIZE) {
+    prevPlayFieldByte -= PLAYFIELD_SIZE;
+  }
+
+  if (nextPlayFieldByte >= PLAYFIELD_SIZE) {
+    nextPlayFieldByte -= PLAYFIELD_SIZE;
+  }
+
+  prevPlayFieldByte += offsetCol;
+  nextPlayFieldByte += offsetCol;
+
+  for (byte x = 0; x < PLAYFIELD_WIDTH; x++) {
+    carry = currentCol + x;
+    nextTileByte = (nextTileRow + (carry % TILEMAP_WIDTH));
+    prevTileByte = (prevTileRow + (carry % TILEMAP_WIDTH));
+
+    memcpy_P(&background_data[prevPlayFieldByte++], &map.data[prevTileByte], 1);
+    memcpy_P(&background_data[nextPlayFieldByte++], &map.data[nextTileByte], 1);
+
+    if (nextPlayFieldByte % PLAYFIELD_WIDTH == 0) {
+      prevPlayFieldByte -= PLAYFIELD_WIDTH;
+      nextPlayFieldByte -= PLAYFIELD_WIDTH;
     }
   }
 }
 
-void adjustPlayField() {
-  byte *d1, *d2;
-  byte currentRow = (iScrollY >> 3) + (EDGES / 2);
+void adjustPlayFieldCols(void) {
+  byte currentRow = background.y >> 3,
+      currentCol = background.x >> 3,
+      offsetRow = currentRow % PLAYFIELD_HEIGHT,
+      offsetCol = currentCol % PLAYFIELD_WIDTH,
+      currentPlayFieldByte = offsetRow * PLAYFIELD_WIDTH;
 
-  int playFieldLength = PLAYFIELD_ROWS * PLAYFIELD_COLS;
+  int nextTileByte,
+      prevTileByte,
+      currentTileByte = currentRow * TILEMAP_WIDTH,
+      nextPlayFieldByte = currentPlayFieldByte + ((offsetCol + VIEWPORT_WIDTH) % PLAYFIELD_WIDTH),
+      prevPlayFieldByte = offsetCol == 0
+        ? currentPlayFieldByte + PLAYFIELD_WIDTH - 1
+        : currentPlayFieldByte + (offsetCol - 1);
 
-  int nextPlayfieldBit = (currentRow + VIEWPORT_HEIGHT) * PLAYFIELD_COLS,
-      cNextPlayfieldBit = nextPlayfieldBit % playFieldLength,
-      cNextRow = (currentRow + VIEWPORT_HEIGHT + 1) % TILEMAP_HEIGHT;
+  if (prevPlayFieldByte < 0) {
+    prevPlayFieldByte += PLAYFIELD_WIDTH;
+  }
 
-  int prevPlayfieldBit = currentRow * PLAYFIELD_COLS,
-      cPrevPlayfieldBit = prevPlayfieldBit % playFieldLength,
-      cPrevRow = (currentRow + 1) % TILEMAP_HEIGHT;
+  nextTileByte = currentTileByte + ((currentCol + VIEWPORT_WIDTH) % TILEMAP_WIDTH);
+  prevTileByte = currentCol == 0
+     ? currentTileByte + PLAYFIELD_WIDTH - 1
+     : currentTileByte + (currentCol -1);
 
-  d1 = &bPlayfield[cNextPlayfieldBit];
-  d2 = &bPlayfield[cPrevPlayfieldBit];
+  for (byte x = 0; x < PLAYFIELD_HEIGHT; x++) {
+    memcpy_P(&background_data[nextPlayFieldByte], &map.data[nextTileByte], 1);
+    memcpy_P(&background_data[prevPlayFieldByte], &map.data[prevTileByte], 1);
 
-  // The formula for get [y][x] in a linear array (1D) is:
-  // y * COLS + x
-  // Note that y must be `1 index`.
-  for (byte x1 = 0; x1 < PLAYFIELD_COLS; x1++) {
-    _memcpy(d1 + x1, &tileMap[cNextRow * PLAYFIELD_COLS + x1], 1);
-    _memcpy(d2 + x1, &tileMap[cPrevRow * PLAYFIELD_COLS + x1], 1);
+    nextPlayFieldByte = (nextPlayFieldByte + PLAYFIELD_WIDTH) % PLAYFIELD_SIZE;
+    prevPlayFieldByte = (prevPlayFieldByte + PLAYFIELD_WIDTH) % PLAYFIELD_SIZE;
+    nextTileByte = (nextTileByte + TILEMAP_WIDTH) % TILEMAP_SIZE;
+    prevTileByte = (prevTileByte + TILEMAP_WIDTH) % TILEMAP_SIZE;
   }
 }
 
@@ -327,33 +408,18 @@ void adjustPlayField() {
 void moveBackgroundTo(_Bool increment) {
   // LINEAL
   if (increment) {
-//    iScrollX += backgroundSpeed;
-    iScrollY = backgroundDirection
-      ? iScrollY + backgroundSpeed
-      : iScrollY - backgroundSpeed;
+    (background.direction == 1)
+      ? controls_move_background_to_up(&background)
+      : controls_move_background_to_left(&background);
   } else {
-//    iScrollX -= backgroundSpeed;
-    iScrollY = backgroundDirection
-      ? iScrollY - backgroundSpeed
-      : iScrollY + backgroundSpeed;
+    (background.direction == 1)
+      ? controls_move_background_to_down(&background)
+      : controls_move_background_to_right(&background);
   }
-
-  // DIAGONAL
-  /*if (increment) {
-    iScrollY += backgroundSpeed;
-    iScrollX = backgroundDirection
-               ? iScrollX + backgroundSpeed
-               : iScrollX - backgroundSpeed;
-  } else {
-    iScrollY -= backgroundSpeed;
-    iScrollX = backgroundDirection
-               ? iScrollX - backgroundSpeed
-               : iScrollX + backgroundSpeed;
-  }*/
 }
 
 // TODO
-// Esto deberia ser un metodo 'read_spinner' de un fichero spinner.c y desde ahí, llamar al controls.h:
+// Esto deberia ser un metodo 'red_spinner' de un fichero spinner.c y desde ahí, llamar al controls.h:
 // if (a==b) { controls_move_background_to_left(); } else { controls_move_background_to_right(); }
 void moveBackground() {
   int a = PINB>>EncoderA & 1;
@@ -369,22 +435,73 @@ void moveBackground() {
   }
 }
 
+void plot_point(byte x, byte y) {
+  byte bTemp[8] = { 0 };
+  byte currentRow = y >> 3;
+  byte currentCol = x >> 3;
+  byte offsetY = y & 7;
+  byte offsetX = x & 7;
+  byte currentBackgroundData = background_data[(currentRow * PLAYFIELD_WIDTH) + currentCol];
+
+  // Use the fact that x * MODULE = x << 3
+  memcpy_P(bTemp, &ucTiles[(currentBackgroundData << 3) + offsetX], 1);
+  bTemp[0] |= (1 << offsetY);
+  screen_driver_set_position(x, currentRow);
+  i2c_driver_write_data(bTemp, 1);
+}
+
+// Bresenham's line algorithm
+// https://en.wikipedia.org/wiki/Bresenham's_line_algorithm
+void draw_to(int x, int y, int x1, int y1) {
+  int sx, sy, e2, err;
+  byte dx = abs(x1 - x);
+  byte dy = abs(y1 - y);
+
+  if (x < x1) sx = 1; else sx = -1;
+  if (y < y1) sy = 1; else sy = -1;
+
+  err = dx - dy;
+
+  for (;;) {
+    plot_point(x, y);
+    if (x == x1 && y == y1) return;
+    e2 = err << 1;
+
+    if (e2 > -dy) {
+      err = err - dy;
+      x = x + sx;
+    }
+
+    if (e2 < dx) {
+      err = err + dx;
+      y = y + sy;
+    }
+  }
+}
+
 void setup() {
   delay(50); // wait for the OLED to fully power up
+
+  i2c_driver_init(SSD1306_SA);
   screen_driver_init(0, 0);
+  //screen_driver_fill(0x00);
+  engine_background_init(&background);
+  assets_manager_map_init(&map, &level);
 
   attachInterrupt(0, moveBackground, CHANGE); //INT0, PB2, pin7
 
-  iScrollX = 0;
-  iScrollY = 0;
-
   reloadPlayField();
+  DrawPlayField(background);
 
   /*memset(object_list, 0, sizeof(object_list));
 
   object_list[0].bType = 0x80; // big sprite
   object_list[0].x = 14;
   object_list[0].y = 40;*/
+
+  //draw_to(0, 64, 125, 1);
+  //plot_point(24,20);
+  //plot_point(10,4);
 }
 
 void loop() {
@@ -392,47 +509,46 @@ void loop() {
   int speed = 0;
 
   while (1) {
-    if (backgroundDirection) {
-      //iScrollX += backgroundSpeed;
-//      iScrollY += backgroundSpeed;
-    } else {
-      //iScrollX -= backgroundSpeed;
-//      iScrollY -= backgroundSpeed;
-    }
-
-
-    DrawPlayfield(iScrollX, iScrollY);
-
     // Desde aquí se puede definir la velocidad a la que responde el juego:
     // Estaría bien sacar el valor a una variable:
     // (++speed % 3) => Modulo 3 (33% speed)
     // (++speed & 3) => Modulo 4 (25% speed)
-
-    //if ((++speed % 3) == 0) { // Modulo 3 (33% speed)
-    if (1 == 1) { // Modulo 3 (33% speed)
-      if (speed > 10000) {
-        speed = 0;
-      }
-
-      if (iScrollX >= PLAYFIELD_COLS * MODULE) {
-        iScrollX = 0;
+    if ((++speed % 3) == 0) { // Modulo 3 (33% speed)
+      if (background.x > TILEMAP_MAX_WIDTH_SCROLL) {
+        background.x = 0;
+        background.old_x = 0;
         reloadPlayField();
-      } else if (iScrollX < 0) {
-        iScrollX = (PLAYFIELD_COLS * MODULE) - 1;
+      } else if (background.x < 0) {
+        background.x = TILEMAP_MAX_WIDTH_SCROLL;
+        background.old_x = TILEMAP_MAX_WIDTH_SCROLL;
         reloadPlayField();
       }
 
-      if (iScrollY >= 240) {
-        iScrollY = 8;
+      if (background.y > TILEMAP_MAX_HEIGHT_SCROLL) {
+        background.y = 0;
+        background.old_y = 0;
         reloadPlayField();
-      } else if (iScrollY < 0) {
-        iScrollY = 232;
+      } else if (background.y < 0) {
+        background.y = TILEMAP_MAX_HEIGHT_SCROLL;
+        background.old_y = TILEMAP_MAX_HEIGHT_SCROLL;
         reloadPlayField();
       }
 
       if (analogRead(EncoderClick) < 940) {
-        backgroundDirection = !backgroundDirection;
+        background.direction = !background.direction;
       }
+    }
+
+    if (background.x != background.old_x) {
+      background.old_x = background.x;
+      adjustPlayFieldCols();
+      DrawPlayField(background);
+    }
+
+    if (background.y != background.old_y) {
+      background.old_y = background.y;
+      adjustPlayFieldRows();
+      DrawPlayField(background);
     }
   }
 }
