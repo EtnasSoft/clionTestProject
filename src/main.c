@@ -24,7 +24,7 @@ byte background_data[PLAYFIELD_SIZE];
 
 
 // Draw 1 character space that's vertically shifted
-void DrawShiftedChar(byte *s1, byte *s2, byte *d, byte bXOff, byte bYOff) {
+void draw_shifted_char(byte *s1, byte *s2, byte *d, byte bXOff, byte bYOff) {
   byte c, c2, z;
 
   for (z = 0; z < (8 - bXOff); z++) {
@@ -37,7 +37,7 @@ void DrawShiftedChar(byte *s1, byte *s2, byte *d, byte bXOff, byte bYOff) {
 }
 
 // Draw the sprites visible on the current line
-void DrawSprites(byte y, byte *pBuf, GFX_OBJECT *pList, byte bCount) {
+void draw_sprites(byte y, byte *pBuf, GFX_OBJECT *pList, byte bCount) {
   byte i, x, bSize, bSprite, *s, *d;
   byte cOld, cNew, mask, bYOff, bWidth;
 
@@ -161,16 +161,16 @@ void DrawSprites(byte y, byte *pBuf, GFX_OBJECT *pList, byte bCount) {
 }
 
 // Draw the playfield and sprites
-void DrawPlayField(background_game background) {
-  byte x, y, tx, c, *s, *sNext, *d,
+void draw_play_field(background_game background) {
+  byte *s, *sNext, *d, x, y,
       bTemp[SCREEN_WIDTH];
 
-  int ty, bXOff, bYOff, iOffset, iOffset2;
+  int tx, c, ty, bXOff, bYOff, iOffset, iOffset2;
 
-  bXOff = background.x & 7;
-  bYOff = background.y & 7;
+  bXOff = background.x_offset;
+  bYOff = background.y_offset;
 
-  ty = background.y >> 3;
+  ty = background.y_page;
 
   // -------------------------------------------------------
 
@@ -179,7 +179,7 @@ void DrawPlayField(background_game background) {
     memset(bTemp, 0, sizeof(bTemp));
 
     ty = ty % PLAYFIELD_HEIGHT;
-    tx = background.x >> 3;
+    tx = background.x_page;
 
     // Draw the playfield characters at the given scroll position
     d = bTemp;
@@ -187,19 +187,19 @@ void DrawPlayField(background_game background) {
     if (bYOff) {
       for (x = 0; x < VIEWPORT_WIDTH; x++) {
         if (tx >= PLAYFIELD_WIDTH) {
-          tx -= PLAYFIELD_WIDTH; // wrap around
+          tx %= PLAYFIELD_WIDTH; // wrap around
         }
 
         iOffset = tx + (ty * PLAYFIELD_WIDTH);
 
         if (iOffset >= PLAYFIELD_SIZE) {    // past bottom
-          iOffset -= PLAYFIELD_SIZE;
+          iOffset %= PLAYFIELD_SIZE;
         }
 
         iOffset2 = (iOffset + PLAYFIELD_WIDTH); // next line
 
         if (iOffset2 >= PLAYFIELD_SIZE) {    // past bottom
-          iOffset2 -= PLAYFIELD_SIZE;
+          iOffset2 %= PLAYFIELD_SIZE;
         }
 
         c = background_data[iOffset];
@@ -208,7 +208,7 @@ void DrawPlayField(background_game background) {
         c = background_data[iOffset2];
         sNext = (byte *)&ucTiles[(c * MODULE) + bXOff];
 
-        DrawShiftedChar(s, sNext, d, bXOff, bYOff);
+        draw_shifted_char(s, sNext, d, bXOff, bYOff);
 
         d += (MODULE - bXOff);
         bXOff = 0;
@@ -220,14 +220,14 @@ void DrawPlayField(background_game background) {
         bXOff = (byte)(&bTemp[SCREEN_WIDTH] - d);
 
         if (tx >= PLAYFIELD_WIDTH) {
-          tx -= PLAYFIELD_WIDTH;
+          tx %= PLAYFIELD_WIDTH;
         }
 
         iOffset = tx + ty * PLAYFIELD_WIDTH;
         iOffset2 = iOffset + PLAYFIELD_WIDTH; // next line
 
         if (iOffset2 >= PLAYFIELD_SIZE) {    // past bottom
-          iOffset2 -= PLAYFIELD_SIZE;
+          iOffset2 %= PLAYFIELD_SIZE;
         }
 
         c = background_data[iOffset];
@@ -236,7 +236,7 @@ void DrawPlayField(background_game background) {
         c = background_data[iOffset2];
         sNext = (byte *)&ucTiles[c * MODULE];
 
-        DrawShiftedChar(s, sNext, d, MODULE - bXOff, bYOff);
+        draw_shifted_char(s, sNext, d, MODULE - bXOff, bYOff);
       }
       // simpler case of vertical offset of 0 for each character
     } else {
@@ -247,13 +247,13 @@ void DrawPlayField(background_game background) {
       // Filling each col of the SCREEN_WIDTH
       for (x = 0; x < VIEWPORT_WIDTH; x++) {
         if (tx >= PLAYFIELD_WIDTH) {
-          tx -= PLAYFIELD_WIDTH;
+          tx %= PLAYFIELD_WIDTH;
         }
 
         iOffset = tx + (ty * PLAYFIELD_WIDTH);
 
         if (iOffset >= PLAYFIELD_SIZE) {    // past bottom
-          iOffset -= PLAYFIELD_SIZE;
+          iOffset %= PLAYFIELD_SIZE;
         }
 
         c = background_data[iOffset];
@@ -271,7 +271,7 @@ void DrawPlayField(background_game background) {
         bXOff = (byte)(&bTemp[SCREEN_WIDTH] - d);
 
         if (tx >= PLAYFIELD_WIDTH) {
-          tx -= PLAYFIELD_WIDTH;
+          tx %= PLAYFIELD_WIDTH;
         }
 
         iOffset = tx + ty * PLAYFIELD_WIDTH;
@@ -282,6 +282,9 @@ void DrawPlayField(background_game background) {
       }
     }
 
+    // Draw sprites
+    draw_sprites(y << 3, bTemp, object_list, NUMBER_OF_SPRITES); // y * 8 => y << 3
+
     // Send it to the display
     screen_driver_set_position(0, y);
     i2c_driver_write_data(bTemp, SCREEN_WIDTH);
@@ -289,13 +292,13 @@ void DrawPlayField(background_game background) {
   }
 }
 
-void reloadPlayField(void) {
+void reload_play_field(void) {
   byte x, y, currentPlayFieldByte, nextPlayFieldByte,
-      currentRow = background.y >> 3,
-      currentCol = background.x >> 3,
+      currentRow = background.y_page,
+      currentCol = background.x_page,
       offsetCol = currentCol % PLAYFIELD_WIDTH;
 
-  uint16_t nextTileByte;
+  int nextTileByte;
 
   for (y = 0; y < PLAYFIELD_HEIGHT; y++) {
     currentPlayFieldByte = ((currentRow + y) * PLAYFIELD_WIDTH) % PLAYFIELD_SIZE;
@@ -304,7 +307,7 @@ void reloadPlayField(void) {
     nextPlayFieldByte = currentPlayFieldByte;
 
     // Use the fact that 32 * x = x << 5
-    nextTileByte = ((currentRow + y) % TILEMAP_HEIGHT) << 5;
+    nextTileByte = ((currentRow + y) % TILEMAP_HEIGHT) * TILEMAP_WIDTH;
     nextTileByte += currentCol;
 
     for (x = 0; x < PLAYFIELD_WIDTH; x++) {
@@ -320,12 +323,12 @@ void reloadPlayField(void) {
     }
   }
 
-  DrawPlayField(background);
+  draw_play_field(background);
 }
 
-void adjustPlayFieldRows(void) {
-  int currentRow = background.y >> 3,
-      currentCol = background.x >> 3,
+void adjust_play_field_rows(void) {
+  int currentRow = background.y_page,
+      currentCol = background.x_page,
       offsetCol = currentCol % PLAYFIELD_WIDTH,
       offsetRow = currentRow % PLAYFIELD_HEIGHT,
 
@@ -353,9 +356,9 @@ void adjustPlayFieldRows(void) {
   nextPlayFieldByte += offsetCol;
 
   for (byte x = 0; x < PLAYFIELD_WIDTH; x++) {
-    carry = currentCol + x;
-    nextTileByte = (nextTileRow + (carry % TILEMAP_WIDTH));
-    prevTileByte = (prevTileRow + (carry % TILEMAP_WIDTH));
+    carry = (currentCol + x) % TILEMAP_WIDTH;
+    nextTileByte = (nextTileRow + carry);
+    prevTileByte = (prevTileRow + carry);
 
     memcpy_P(&background_data[prevPlayFieldByte++], &map.data[prevTileByte], 1);
     memcpy_P(&background_data[nextPlayFieldByte++], &map.data[nextTileByte], 1);
@@ -367,9 +370,9 @@ void adjustPlayFieldRows(void) {
   }
 }
 
-void adjustPlayFieldCols(void) {
-  byte currentRow = background.y >> 3,
-      currentCol = background.x >> 3,
+void adjust_play_field_cols(void) {
+  byte currentRow = background.y_page,
+      currentCol = background.x_page,
       offsetRow = currentRow % PLAYFIELD_HEIGHT,
       offsetCol = currentCol % PLAYFIELD_WIDTH,
       currentPlayFieldByte = offsetRow * PLAYFIELD_WIDTH;
@@ -405,7 +408,7 @@ void adjustPlayFieldCols(void) {
 // Interrupt handler **********************************************
 // Called when encoder value changes
 // Button interrupt, INT0, PB2, pin7
-void moveBackgroundTo(_Bool increment) {
+void move_background_to(_Bool increment) {
   // LINEAL
   if (increment) {
     (background.direction == 1)
@@ -421,7 +424,7 @@ void moveBackgroundTo(_Bool increment) {
 // TODO
 // Esto deberia ser un metodo 'red_spinner' de un fichero spinner.c y desde ahí, llamar al controls.h:
 // if (a==b) { controls_move_background_to_left(); } else { controls_move_background_to_right(); }
-void moveBackground() {
+void move_background() {
   int a = PINB>>EncoderA & 1;
   int b = PINB>>EncoderB & 1;
 
@@ -430,7 +433,7 @@ void moveBackground() {
     a0 = a;
     if (b != c0) {
       c0 = b;
-      moveBackgroundTo(a == b);
+      move_background_to(a == b);
     }
   }
 }
@@ -479,25 +482,85 @@ void draw_to(int x, int y, int x1, int y1) {
   }
 }
 
+void plot_text(int x, int y, PGM_P s) {
+  byte bTemp[8] = { 0 };
+  int p = (int)s;
+  byte currentRow = y >> 3;
+  while (1) {
+    char c = pgm_read_byte(p++);
+    if (c == 0) return;
+
+    for (uint8_t col = 0 ; col < 6; col++) {
+      screen_driver_set_position(x, currentRow);
+      memcpy_P(bTemp, &charMap[c-32][col], 1);
+      i2c_driver_write_data(bTemp, 1);
+      x++;
+    }
+  }
+}
+
+int stretch (int x) {
+  x = (x & 0xF0)<<4 | (x & 0x0F);
+  x = (x<<2 | x) & 0x3333;
+  x = (x<<1 | x) & 0x5555;
+  return x | x<<1;
+}
+
+void plot_big_text(int x, int y, PGM_P s) {
+  byte bTemp[16] = { 0 };
+  int p = (int)s;
+  byte currentRow = y >> 3;
+
+  while (1) {
+    char c = pgm_read_byte(p++);
+    if (c == 0) return;
+
+    for (uint8_t col = 0 ; col < 6; col++) {
+      int bits = stretch(pgm_read_byte(&charMap[c-32][col]));
+      for (int i=2; i--;) {
+        screen_driver_set_position(x, currentRow);
+        bTemp[0] = bits;
+        i2c_driver_write_data(bTemp, 2);
+
+        screen_driver_set_position(x, currentRow + 1);
+        bTemp[0] = bits >> 8;
+        i2c_driver_write_data(bTemp, 2);
+
+        x++;
+      }
+    }
+  }
+}
+
+void init_sprites() {
+  memset(object_list, 0, sizeof(object_list));
+  object_list[0].bType = 0x80; // big sprite
+  object_list[0].x = 14;
+  object_list[0].y = 40;
+}
+
 void setup() {
   delay(50); // wait for the OLED to fully power up
+  attachInterrupt(0, move_background, CHANGE); //INT0, PB2, pin7
 
+  // Initializing screen drivers
   i2c_driver_init(SSD1306_SA);
   screen_driver_init(0, 0);
   //screen_driver_fill(0x00);
+
+  // Initializing the background and loading the current level
   engine_background_init(&background);
+  engine_background_set_pos(475, 0);
   assets_manager_map_init(&map, &level);
 
-  attachInterrupt(0, moveBackground, CHANGE); //INT0, PB2, pin7
+  // Initializing sprites and main routines
+  init_sprites();
+  reload_play_field();
+  draw_play_field(background); // Needed for draw sprites.
 
-  reloadPlayField();
-  DrawPlayField(background);
-
-  /*memset(object_list, 0, sizeof(object_list));
-
-  object_list[0].bType = 0x80; // big sprite
-  object_list[0].x = 14;
-  object_list[0].y = 40;*/
+  // Some text...
+  //plot_text(30, 22, PSTR("hello world"));
+  //plot_big_text(40, 35, PSTR("momo"));
 
   //draw_to(0, 64, 125, 1);
   //plot_point(24,20);
@@ -515,23 +578,19 @@ void loop() {
     // (++speed & 3) => Modulo 4 (25% speed)
     if ((++speed % 3) == 0) { // Modulo 3 (33% speed)
       if (background.x > TILEMAP_MAX_WIDTH_SCROLL) {
-        background.x = 0;
-        background.old_x = 0;
-        reloadPlayField();
+        engine_background_set_pos(0, background.y);
+        reload_play_field();
       } else if (background.x < 0) {
-        background.x = TILEMAP_MAX_WIDTH_SCROLL;
-        background.old_x = TILEMAP_MAX_WIDTH_SCROLL;
-        reloadPlayField();
+        engine_background_set_pos(TILEMAP_MAX_WIDTH_SCROLL, background.y);
+        reload_play_field();
       }
 
       if (background.y > TILEMAP_MAX_HEIGHT_SCROLL) {
-        background.y = 0;
-        background.old_y = 0;
-        reloadPlayField();
+        engine_background_set_pos(background.x, 0);
+        reload_play_field();
       } else if (background.y < 0) {
-        background.y = TILEMAP_MAX_HEIGHT_SCROLL;
-        background.old_y = TILEMAP_MAX_HEIGHT_SCROLL;
-        reloadPlayField();
+        engine_background_set_pos(background.x, TILEMAP_MAX_HEIGHT_SCROLL);
+        reload_play_field();
       }
 
       if (analogRead(EncoderClick) < 940) {
@@ -539,16 +598,16 @@ void loop() {
       }
     }
 
-    if (background.x != background.old_x) {
-      background.old_x = background.x;
-      adjustPlayFieldCols();
-      DrawPlayField(background);
+    if (background.x != background.x_old) {
+      background.x_old = background.x;
+      adjust_play_field_cols();
+      draw_play_field(background);
     }
 
-    if (background.y != background.old_y) {
-      background.old_y = background.y;
-      adjustPlayFieldRows();
-      DrawPlayField(background);
+    if (background.y != background.y_old) {
+      background.y_old = background.y;
+      adjust_play_field_rows();
+      draw_play_field(background);
     }
   }
 }

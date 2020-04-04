@@ -4,30 +4,20 @@
 #include "types.h"
 
 // Prototypes **********************************************
-void gameLoop(void);
-void reloadPlayField(void);
-void adjustPlayField(void);
-void i2cByteOut(byte b);
-void i2cBegin(byte addr);
-void i2cWrite(byte *pData, byte bLen);
-void i2cEnd(void);
-void I2CWrite(byte *pData, int iLen);
-void I2CWriteData(byte *pData, int iLen);
-void oledInit(int bFlip, int bInvert);
-void oledShutdown(void);
-void oledWriteCommand(unsigned char c);
-void oledWriteCommand2(unsigned char c, unsigned char d);
-void oledSetContrast(unsigned char ucContrast);
-void oledSetPosition(int x, int y);
-void oledFill(unsigned char ucData);
-void DrawShiftedChar(byte *s1, byte *s2, byte *d, byte bXOff, byte bYOff);
-void DrawSprites(byte y, byte *pBuf, GFX_OBJECT *pList, byte bCount);
-void DrawPlayField(background_game background);
-void moveBackgroundTo(_Bool increment);
-void moveBackground(void);
+void reload_play_field(void);
+void draw_shifted_char(byte *s1, byte *s2, byte *d, byte bXOff, byte bYOff);
+void draw_sprites(byte y, byte *pBuf, GFX_OBJECT *pList, byte bCount);
+void draw_play_field(background_game background);
+void move_background_to(_Bool increment);
+void move_background(void);
+void adjust_play_field_rows(void);
+void adjust_play_field_cols(void);
+void plot_point(byte x, byte y);
+void draw_to(int x, int y, int x1, int y1);
+void plot_text(int x, int y, PGM_P s);
+int stretch (int x);
+void plot_big_text(int x, int y, PGM_P s);
 void setup(void);
 void loop(void);
-void adjustPlayFieldRows(void);
-void adjustPlayFieldCols(void);
 
 #endif // MAIN_H

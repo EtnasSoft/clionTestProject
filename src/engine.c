@@ -4,8 +4,12 @@
 void engine_background_init(background_game_ptr background) {
   background->x = 0;
   background->y = 0;
-  background->old_x = 0;
-  background->old_y = 0;
+  background->x_old = 0;
+  background->y_old = 0;
+  background->x_offset = 0;
+  background->y_offset = 0;
+  background->x_page = 0;
+  background->y_page = 0;
   background->speed = 1;
   background->direction = 0;
 }
@@ -18,6 +22,16 @@ int engine_background_set(const background_game *new_background_config) {
 
 const background_game *engine_background_get(void) {
   return &background;
+}
+
+void engine_background_set_pos(uint16_t x, uint16_t y) {
+  background.x = x;
+  background.x_offset = x & 7;
+  background.x_page = x >> 3;
+
+  background.y = y;
+  background.y_offset = y & 7;
+  background.y_page = y >> 3;
 }
 
 // Adjust the background to screen filling it with the correct data

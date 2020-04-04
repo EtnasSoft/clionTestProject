@@ -43,8 +43,9 @@
 #define SCREEN_BUFFER_HEIGHT PLAYFIELD_HEIGHT   // 10
 #define SCREEN_BUFFER_SIZE PLAYFIELD_SIZE // 180
 
-#define TILEMAP_HEIGHT 32
-#define TILEMAP_WIDTH 32
+// TODO: estas variables ya están definidas en el assets, en el nivel correspondiente... no tiene sentido esta duplicidad.
+#define TILEMAP_HEIGHT 8
+#define TILEMAP_WIDTH 128
 #define TILEMAP_SIZE (TILEMAP_HEIGHT * TILEMAP_WIDTH)
 
 #define DIRECT_PORT
@@ -80,8 +81,12 @@ typedef struct tag_gfx_object {
 typedef struct background_game_typ {
   int x;
   int y;
-  int old_x;
-  int old_y;
+  int x_old;
+  int y_old;
+  int x_offset;
+  int y_offset;
+  int x_page;
+  int y_page;
   byte speed;
   _Bool direction;
 } background_game, *background_game_ptr;
@@ -100,6 +105,8 @@ background_game background;
 
 // Define the map
 map_game map;
-//static GFX_OBJECT object_list[NUMBER_OF_SPRITES];
+
+
+static GFX_OBJECT object_list[NUMBER_OF_SPRITES];
 
 #endif // CLIONTESTPROJECT_TYPES_H
