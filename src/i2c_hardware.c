@@ -1,5 +1,4 @@
 #include "types.h"
-#include "config.h"
 #include "i2c_hardware.h"
 
 #ifdef TEST

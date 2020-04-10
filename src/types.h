@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+
 // TEST DEFINES
 // ////////////////////////////////////////////////////////////////////
 #ifdef TEST
@@ -15,6 +16,7 @@
 #define _PROGMEM PROGMEM
 #define _memcpy memcpy_P
 #endif
+
 
 // DEFINES
 // ////////////////////////////////////////////////////////////////////
@@ -68,11 +70,19 @@ typedef struct {
 } config_t;
 
 // Define the structure of the FX Objects
-typedef struct tag_gfx_object {
-  byte x;
-  byte y;
+typedef struct gfx_object_typ {
+  int x;
+  int y;
+  int x_main_grid_pos;
+  int y_main_grid_pos;
+  int x_old;
+  int y_old;
   byte bType;
-} GFX_OBJECT;
+  byte x_speed;
+  int y_speed; // can be negative
+  byte gravity;
+  _Bool on_ground;
+} gfx_object, *gfx_object_ptr;
 
 // TODO: Los tipos int son excesivos. Por encima del byte (uint8_t), estaría:
 // - uint16_t con 65535; más que suficiente.
@@ -98,15 +108,26 @@ typedef struct map_game_typ {
   byte *data;
 } map_game, *map_game_ptr;
 
-// GLOBALS
+
+// GLOBALS (Player and Game vars)
 // ////////////////////////////////////////////////////////////////////
-// Define the background
-background_game background;
+background_game background; // Define the background
+map_game map; // Define the map
+gfx_object object_list[NUMBER_OF_SPRITES]; // Define the game object list
+byte background_data[PLAYFIELD_SIZE];
 
-// Define the map
-map_game map;
 
-
-static GFX_OBJECT object_list[NUMBER_OF_SPRITES];
+// GRAPHICS MODE
+// ////////////////////////////////////////////////////////////////////
+//
+// MODE 0   No scroll
+// MODE 1   Infinite Scroll vertical
+// MODE 2   Infinite Scroll horizontal
+// MODE 3   Infinite Scroll vertical and horizontal
+// MODE 4   Scroll vertical (not infinite)
+// MODE 5   Scroll horizontal (not infinite)
+// MODE 6   Scroll vertical and horizontal (not infinite)
+//
+#define MODE_3
 
 #endif // CLIONTESTPROJECT_TYPES_H

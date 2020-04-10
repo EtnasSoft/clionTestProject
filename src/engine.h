@@ -14,6 +14,6 @@ void engine_background_adjust(background_game_ptr background, map_game_ptr map);
 void engine_background_set_pos(uint16_t x, uint16_t y);
 
 void engine_shifter_char(byte *s1, byte *s2, byte *d, byte bXOff, byte bYOff);
-void engine_draw_sprites(byte y, byte *pBuf, GFX_OBJECT *pList, byte bCount);
+void engine_draw_sprites(byte y, byte *pBuf, gfx_object *pList, byte bCount);
 
 #endif // ENGINE_H

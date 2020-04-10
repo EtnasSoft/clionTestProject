@@ -1,5 +1,3 @@
-#include "config.h"
-
 #ifndef TEST
 #include "i2c_driver.h"
 #include "i2c_hardware.h"

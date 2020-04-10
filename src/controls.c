@@ -1,3 +1,4 @@
+#include "types.h"
 #include "controls.h"
 
 void controls_move_background_to_up(background_game_ptr background) {

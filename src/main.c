@@ -1,3 +1,5 @@
+// INCLUDES
+// ////////////////////////////////////////////////////////////////////
 #include <Arduino.h>
 #include <avr/interrupt.h>
 #include "types.h"
@@ -9,20 +11,23 @@
 #include "engine.h"
 #include "assets_manager.h"
 #include "controls.h"
+#include "plot.h"
 
-// Rotary encoder **********************************************
+// DEFINES
+// ////////////////////////////////////////////////////////////////////
 #define EncoderClick A0 // A0 PB5, pin 1 (RESET)
+
+// GLOBALS (Player and Game vars)
+// ////////////////////////////////////////////////////////////////////
+gfx_object_ptr player = object_list; // By default, player points to object_list[0]
 const int EncoderA = 2; // PB2, pin 7 (INT0)
 const int EncoderB = 1; // PB1, pin 6
 
-// For interrupt:
 volatile int a0;
 volatile int c0;
 
-// Player and Game vars **********************************************
-byte background_data[PLAYFIELD_SIZE];
-
-
+// FUNCTIONS
+// ////////////////////////////////////////////////////////////////////
 // Draw 1 character space that's vertically shifted
 void draw_shifted_char(byte *s1, byte *s2, byte *d, byte bXOff, byte bYOff) {
   byte c, c2, z;
@@ -37,11 +42,11 @@ void draw_shifted_char(byte *s1, byte *s2, byte *d, byte bXOff, byte bYOff) {
 }
 
 // Draw the sprites visible on the current line
-void draw_sprites(byte y, byte *pBuf, GFX_OBJECT *pList, byte bCount) {
+void draw_sprites(byte y, byte *pBuf, gfx_object *pList, byte bCount) {
   byte i, x, bSize, bSprite, *s, *d;
   byte cOld, cNew, mask, bYOff, bWidth;
 
-  GFX_OBJECT *pObject;
+  gfx_object *pObject;
   for (i = 0; i < bCount; i++) {
     pObject = &pList[i];
     bSprite = pObject->bType;          // index
@@ -161,6 +166,7 @@ void draw_sprites(byte y, byte *pBuf, GFX_OBJECT *pList, byte bCount) {
 }
 
 // Draw the playfield and sprites
+// TODO: Deberia pasar el background por puntero ???????
 void draw_play_field(background_game background) {
   byte *s, *sNext, *d, x, y,
       bTemp[SCREEN_WIDTH];
@@ -410,7 +416,7 @@ void adjust_play_field_cols(void) {
 // Button interrupt, INT0, PB2, pin7
 void move_background_to(_Bool increment) {
   // LINEAL
-  if (increment) {
+  /*if (increment) {
     (background.direction == 1)
       ? controls_move_background_to_up(&background)
       : controls_move_background_to_left(&background);
@@ -418,12 +424,33 @@ void move_background_to(_Bool increment) {
     (background.direction == 1)
       ? controls_move_background_to_down(&background)
       : controls_move_background_to_right(&background);
+  }*/
+  //  if (increment) {
+  //    if (player->x < 64) {
+  //      player->x += player->x_speed;
+  //    } else {
+  //      controls_move_background_to_right(&background);
+  //    }
+  //  } else {
+  //    if (player->x > 56) {
+  //      player->x -= player->x_speed;
+  //    } else {
+  //      controls_move_background_to_left(&background);
+  //    }
+  //  }
+  if (increment) {
+    controls_move_background_to_right(&background);
+    if (check_collision()) { //collision
+      controls_move_background_to_left(&background);
+    }
+  } else {
+    controls_move_background_to_left(&background);
+    if (check_collision()) { //collision
+      controls_move_background_to_right(&background);
+    }
   }
 }
 
-// TODO
-// Esto deberia ser un metodo 'red_spinner' de un fichero spinner.c y desde ahí, llamar al controls.h:
-// if (a==b) { controls_move_background_to_left(); } else { controls_move_background_to_right(); }
 void move_background() {
   int a = PINB>>EncoderA & 1;
   int b = PINB>>EncoderB & 1;
@@ -438,105 +465,77 @@ void move_background() {
   }
 }
 
-void plot_point(byte x, byte y) {
-  byte bTemp[8] = { 0 };
-  byte currentRow = y >> 3;
-  byte currentCol = x >> 3;
-  byte offsetY = y & 7;
-  byte offsetX = x & 7;
-  byte currentBackgroundData = background_data[(currentRow * PLAYFIELD_WIDTH) + currentCol];
-
-  // Use the fact that x * MODULE = x << 3
-  memcpy_P(bTemp, &ucTiles[(currentBackgroundData << 3) + offsetX], 1);
-  bTemp[0] |= (1 << offsetY);
-  screen_driver_set_position(x, currentRow);
-  i2c_driver_write_data(bTemp, 1);
-}
-
-// Bresenham's line algorithm
-// https://en.wikipedia.org/wiki/Bresenham's_line_algorithm
-void draw_to(int x, int y, int x1, int y1) {
-  int sx, sy, e2, err;
-  byte dx = abs(x1 - x);
-  byte dy = abs(y1 - y);
-
-  if (x < x1) sx = 1; else sx = -1;
-  if (y < y1) sy = 1; else sy = -1;
-
-  err = dx - dy;
-
-  for (;;) {
-    plot_point(x, y);
-    if (x == x1 && y == y1) return;
-    e2 = err << 1;
-
-    if (e2 > -dy) {
-      err = err - dy;
-      x = x + sx;
-    }
-
-    if (e2 < dx) {
-      err = err + dx;
-      y = y + sy;
-    }
+void player_start_jump() {
+  if (player->on_ground == 1) {
+    player->y_speed = -12;
+    player->on_ground = 0;
   }
 }
 
-void plot_text(int x, int y, PGM_P s) {
-  byte bTemp[8] = { 0 };
-  int p = (int)s;
-  byte currentRow = y >> 3;
-  while (1) {
-    char c = pgm_read_byte(p++);
-    if (c == 0) return;
-
-    for (uint8_t col = 0 ; col < 6; col++) {
-      screen_driver_set_position(x, currentRow);
-      memcpy_P(bTemp, &charMap[c-32][col], 1);
-      i2c_driver_write_data(bTemp, 1);
-      x++;
-    }
-  }
-}
-
-int stretch (int x) {
-  x = (x & 0xF0)<<4 | (x & 0x0F);
-  x = (x<<2 | x) & 0x3333;
-  x = (x<<1 | x) & 0x5555;
-  return x | x<<1;
-}
-
-void plot_big_text(int x, int y, PGM_P s) {
-  byte bTemp[16] = { 0 };
-  int p = (int)s;
-  byte currentRow = y >> 3;
-
-  while (1) {
-    char c = pgm_read_byte(p++);
-    if (c == 0) return;
-
-    for (uint8_t col = 0 ; col < 6; col++) {
-      int bits = stretch(pgm_read_byte(&charMap[c-32][col]));
-      for (int i=2; i--;) {
-        screen_driver_set_position(x, currentRow);
-        bTemp[0] = bits;
-        i2c_driver_write_data(bTemp, 2);
-
-        screen_driver_set_position(x, currentRow + 1);
-        bTemp[0] = bits >> 8;
-        i2c_driver_write_data(bTemp, 2);
-
-        x++;
-      }
-    }
+void player_end_jump() {
+  if (player->y_speed < 0) {
+    player->y_speed = 0;
   }
 }
 
 void init_sprites() {
   memset(object_list, 0, sizeof(object_list));
-  object_list[0].bType = 0x80; // big sprite
-  object_list[0].x = 14;
-  object_list[0].y = 40;
+
+  // big sprite
+  // TODO: llevarse esto a un fichero de tipo player.c que tenga estos metodos de set_pos igual que el background
+  player->bType = 0x80;
+  player->x = 56;
+  player->x_old = 56;
+  player->y = 40;
+  player->y_old = 40;
+  player->x_main_grid_pos = 56 + 48;
+  player->y_main_grid_pos = 40;
+
+  player->x_speed = 8;
+  player->y_speed = 4;
+  player->gravity = 2;
+  player->on_ground = 1;
+}
+
+_Bool check_collision() {
+  int current_player_pos_y_in_grid = ((background.y + player->y) >> 3) * TILEMAP_WIDTH,
+    current_player_pos_x_in_grid = ((background.x + player->x) >> 3) - 1,
+    current_player_byte_pos_in_grid = current_player_pos_y_in_grid + current_player_pos_x_in_grid,
+    tile_top_before = current_player_byte_pos_in_grid + 1,
+    tile_top_after = current_player_byte_pos_in_grid + 2;
+
+  int data_tile_top_before = pgm_read_byte(&map.data[tile_top_before]),
+    data_tile_bottom_before = pgm_read_byte(&map.data[tile_top_before + TILEMAP_WIDTH]),
+    data_tile_top_after = pgm_read_byte(&map.data[tile_top_after]),
+    data_tile_bottom_after = pgm_read_byte(&map.data[tile_top_after + TILEMAP_WIDTH]);
+
+  if (
+      (data_tile_top_before == 1) ||
+      (data_tile_bottom_before == 1) ||
+      (data_tile_top_after == 1) ||
+      (data_tile_bottom_after == 1) ||
+      (player->on_ground == 0 && check_ground())
+  ) {
+    return 1;
+  }
+
+  return 0;
+}
+
+_Bool check_ground() {
+  int current_player_pos_y_in_grid = ((background.y + player->y) >> 3) * TILEMAP_WIDTH,
+      current_player_pos_x_in_grid = ((background.x + player->x) >> 3) - 1,
+      current_player_byte_pos_in_grid = current_player_pos_y_in_grid + current_player_pos_x_in_grid,
+      tile_floor_left = current_player_byte_pos_in_grid + 1 + TILEMAP_WIDTH + TILEMAP_WIDTH;
+
+  int data_tile_floor_left = pgm_read_byte(&map.data[tile_floor_left]),
+      data_tile_floor_right = pgm_read_byte(&map.data[tile_floor_left + 1]);
+
+  if (data_tile_floor_left == 1 || data_tile_floor_right == 1) {
+    return 1;
+  }
+
+  return 0;
 }
 
 void setup() {
@@ -550,7 +549,7 @@ void setup() {
 
   // Initializing the background and loading the current level
   engine_background_init(&background);
-  engine_background_set_pos(475, 0);
+  engine_background_set_pos(48, 0);
   assets_manager_map_init(&map, &level);
 
   // Initializing sprites and main routines
@@ -594,7 +593,41 @@ void loop() {
       }
 
       if (analogRead(EncoderClick) < 940) {
-        background.direction = !background.direction;
+        //background.direction = !background.direction;
+        player_start_jump();
+      } else {
+        player_end_jump();
+      }
+    }
+
+    if ((speed % 512) == 0) {
+      speed = 0;
+
+      if (
+          (player->on_ground == 0) || (player->on_ground == 1 && !check_ground())
+      ) {
+        player->y_speed += player->gravity;
+        if (player->y_speed >= 6) player->y_speed = 6;
+
+        player->y += player->y_speed;
+        if (player->y <= 0) player->y = 0;
+      }
+
+      if (check_ground()) {
+        player->y = (player->y >> 3) << 3;
+        player->y_speed = 0;
+        player->on_ground = 1;
+        draw_play_field(background);
+      }
+
+      if (player->x_old != player->x) {
+        player->x_old = player->x;
+        draw_play_field(background);
+      }
+
+      if (player->y_old != player->y) {
+        player->y_old = player->y;
+        draw_play_field(background);
       }
     }
 
