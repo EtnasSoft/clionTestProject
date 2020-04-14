@@ -82,6 +82,7 @@ typedef struct gfx_object_typ {
   int y_speed; // can be negative
   byte gravity;
   _Bool on_ground;
+  _Bool is_jumping; // prevent keep jumping while jump button is pressed
 } gfx_object, *gfx_object_ptr;
 
 // TODO: Los tipos int son excesivos. Por encima del byte (uint8_t), estaría:

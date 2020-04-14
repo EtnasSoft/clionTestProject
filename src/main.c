@@ -16,10 +16,13 @@
 // DEFINES
 // ////////////////////////////////////////////////////////////////////
 #define EncoderClick A0 // A0 PB5, pin 1 (RESET)
+#define DIGITAL
 
 // GLOBALS (Player and Game vars)
 // ////////////////////////////////////////////////////////////////////
 gfx_object_ptr player = object_list; // By default, player points to object_list[0]
+int speed = 0;
+_Bool render_ready = 1;
 const int EncoderA = 2; // PB2, pin 7 (INT0)
 const int EncoderB = 1; // PB1, pin 6
 
@@ -166,8 +169,7 @@ void draw_sprites(byte y, byte *pBuf, gfx_object *pList, byte bCount) {
 }
 
 // Draw the playfield and sprites
-// TODO: Deberia pasar el background por puntero ???????
-void draw_play_field(background_game background) {
+void draw_play_field() {
   byte *s, *sNext, *d, x, y,
       bTemp[SCREEN_WIDTH];
 
@@ -296,6 +298,8 @@ void draw_play_field(background_game background) {
     i2c_driver_write_data(bTemp, SCREEN_WIDTH);
     ty++;
   }
+
+  render_ready = 1;
 }
 
 void reload_play_field(void) {
@@ -329,7 +333,7 @@ void reload_play_field(void) {
     }
   }
 
-  draw_play_field(background);
+  draw_play_field();
 }
 
 void adjust_play_field_rows(void) {
@@ -411,6 +415,7 @@ void adjust_play_field_cols(void) {
   }
 }
 
+#ifdef ANALOG
 // Interrupt handler **********************************************
 // Called when encoder value changes
 // Button interrupt, INT0, PB2, pin7
@@ -438,15 +443,20 @@ void move_background_to(_Bool increment) {
   //      controls_move_background_to_left(&background);
   //    }
   //  }
-  if (increment) {
-    controls_move_background_to_right(&background);
-    if (check_collision()) { //collision
-      controls_move_background_to_left(&background);
-    }
-  } else {
-    controls_move_background_to_left(&background);
-    if (check_collision()) { //collision
+  if (
+    (render_ready)
+  ) {
+    render_ready = 0;
+    if (increment) {
       controls_move_background_to_right(&background);
+      if (check_collision()) { // collision
+        controls_move_background_to_left(&background);
+      }
+    } else {
+      controls_move_background_to_left(&background);
+      if (check_collision()) { // collision
+        controls_move_background_to_right(&background);
+      }
     }
   }
 }
@@ -464,15 +474,18 @@ void move_background() {
     }
   }
 }
+#endif
 
 void player_start_jump() {
-  if (player->on_ground == 1) {
-    player->y_speed = -12;
+  if (player->on_ground == 1 && player->is_jumping == 0) {
+    player->is_jumping = 1;
+    player->y_speed = -8;
     player->on_ground = 0;
   }
 }
 
 void player_end_jump() {
+  player->is_jumping = 0;
   if (player->y_speed < 0) {
     player->y_speed = 0;
   }
@@ -493,27 +506,23 @@ void init_sprites() {
 
   player->x_speed = 8;
   player->y_speed = 4;
-  player->gravity = 2;
+  player->gravity = 1;
   player->on_ground = 1;
 }
 
 _Bool check_collision() {
-  int current_player_pos_y_in_grid = ((background.y + player->y) >> 3) * TILEMAP_WIDTH,
-    current_player_pos_x_in_grid = ((background.x + player->x) >> 3) - 1,
-    current_player_byte_pos_in_grid = current_player_pos_y_in_grid + current_player_pos_x_in_grid,
-    tile_top_before = current_player_byte_pos_in_grid + 1,
-    tile_top_after = current_player_byte_pos_in_grid + 2;
-
-  int data_tile_top_before = pgm_read_byte(&map.data[tile_top_before]),
-    data_tile_bottom_before = pgm_read_byte(&map.data[tile_top_before + TILEMAP_WIDTH]),
-    data_tile_top_after = pgm_read_byte(&map.data[tile_top_after]),
-    data_tile_bottom_after = pgm_read_byte(&map.data[tile_top_after + TILEMAP_WIDTH]);
+  int current_row = (background.y_page + (player->y >> 3) % PLAYFIELD_HEIGHT) * PLAYFIELD_WIDTH,
+    base = (background.x_page + (player->x >> 3)) % PLAYFIELD_WIDTH,
+    prev_pos_top = current_row + base,
+    prev_pos_bottom = prev_pos_top + PLAYFIELD_WIDTH,
+    next_pos_top = current_row + ((base + 2) % PLAYFIELD_WIDTH),
+    next_pos_bottom = next_pos_top + PLAYFIELD_WIDTH;
 
   if (
-      (data_tile_top_before == 1) ||
-      (data_tile_bottom_before == 1) ||
-      (data_tile_top_after == 1) ||
-      (data_tile_bottom_after == 1) ||
+      (background_data[prev_pos_top] == 1) ||
+      (background_data[next_pos_top] == 1) ||
+      (background_data[next_pos_bottom] == 1) ||
+      (background_data[prev_pos_bottom] == 1) ||
       (player->on_ground == 0 && check_ground())
   ) {
     return 1;
@@ -523,24 +532,68 @@ _Bool check_collision() {
 }
 
 _Bool check_ground() {
-  int current_player_pos_y_in_grid = ((background.y + player->y) >> 3) * TILEMAP_WIDTH,
-      current_player_pos_x_in_grid = ((background.x + player->x) >> 3) - 1,
-      current_player_byte_pos_in_grid = current_player_pos_y_in_grid + current_player_pos_x_in_grid,
-      tile_floor_left = current_player_byte_pos_in_grid + 1 + TILEMAP_WIDTH + TILEMAP_WIDTH;
+  // "2" is the player height in 'pages' => 16 >> 3 = 2
+  int current_row = ((background.y_page + (player->y >> 3) + 2) % PLAYFIELD_HEIGHT) * PLAYFIELD_WIDTH,
+      base_1 = (background.x_page + (player->x >> 3)) % PLAYFIELD_WIDTH,
+      base_2 = (base_1 + 2) % PLAYFIELD_WIDTH,
+      tile_floor_left = current_row + base_1,
+      tile_floor_right = current_row + base_2;
 
-  int data_tile_floor_left = pgm_read_byte(&map.data[tile_floor_left]),
-      data_tile_floor_right = pgm_read_byte(&map.data[tile_floor_left + 1]);
-
-  if (data_tile_floor_left == 1 || data_tile_floor_right == 1) {
+  if (background_data[tile_floor_left] == 1 || background_data[tile_floor_right] == 1) {
     return 1;
   }
 
   return 0;
 }
+/*
+  _Bool check_collision_2() {
+    int current_player_pos_y_in_grid = ((background.y + player->y) >> 3) * TILEMAP_WIDTH,
+      current_player_pos_x_in_grid = ((background.x + player->x) >> 3) - 1,
+      current_player_byte_pos_in_grid = current_player_pos_y_in_grid + current_player_pos_x_in_grid,
+      tile_top_before = current_player_byte_pos_in_grid + 1,
+      tile_top_after = current_player_byte_pos_in_grid + 2;
 
+    int data_tile_top_before = pgm_read_byte(&map.data[tile_top_before]),
+      data_tile_bottom_before = pgm_read_byte(&map.data[tile_top_before + TILEMAP_WIDTH]),
+      data_tile_top_after = pgm_read_byte(&map.data[tile_top_after]),
+      data_tile_bottom_after = pgm_read_byte(&map.data[tile_top_after + TILEMAP_WIDTH]);
+
+    if (
+        (data_tile_top_before == 1) ||
+        (data_tile_bottom_before == 1) ||
+        (data_tile_top_after == 1) ||
+        (data_tile_bottom_after == 1) ||
+        (player->on_ground == 0 && check_ground())
+    ) {
+      return 1;
+    }
+
+    return 0;
+  }
+*/
+/*
+  _Bool check_ground_old() {
+    int current_player_pos_y_in_grid = ((background.y + player->y) >> 3) * TILEMAP_WIDTH,
+        current_player_pos_x_in_grid = ((background.x + player->x) >> 3) - 1,
+        current_player_byte_pos_in_grid = current_player_pos_y_in_grid + current_player_pos_x_in_grid,
+        tile_floor_left = current_player_byte_pos_in_grid + 1 + TILEMAP_WIDTH + TILEMAP_WIDTH;
+
+    int data_tile_floor_left = pgm_read_byte(&map.data[tile_floor_left]),
+        data_tile_floor_right = pgm_read_byte(&map.data[tile_floor_left + 1]);
+
+    if (data_tile_floor_left == 1 || data_tile_floor_right == 1) {
+      return 1;
+    }
+
+    return 0;
+  }
+*/
 void setup() {
   delay(50); // wait for the OLED to fully power up
+
+#ifdef ANALOG
   attachInterrupt(0, move_background, CHANGE); //INT0, PB2, pin7
+#endif
 
   // Initializing screen drivers
   i2c_driver_init(SSD1306_SA);
@@ -555,7 +608,7 @@ void setup() {
   // Initializing sprites and main routines
   init_sprites();
   reload_play_field();
-  draw_play_field(background); // Needed for draw sprites.
+  draw_play_field(); // Needed for draw sprites.
 
   // Some text...
   //plot_text(30, 22, PSTR("hello world"));
@@ -567,15 +620,44 @@ void setup() {
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
-  int speed = 0;
+  _Bool need_render = 0;
 
   while (1) {
     // Desde aquí se puede definir la velocidad a la que responde el juego:
     // Estaría bien sacar el valor a una variable:
     // (++speed % 3) => Modulo 3 (33% speed)
     // (++speed & 3) => Modulo 4 (25% speed)
-    if ((++speed % 3) == 0) { // Modulo 3 (33% speed)
+
+    if (++speed % 512 == 0) { // Modulo 3 (33% speed)
+
+      if (analogRead(EncoderClick) < 940) {
+        player_start_jump();
+      } else {
+        player_end_jump();
+      }
+
+#ifdef DIGITAL
+      if (digitalRead(2) == HIGH && render_ready == 1) {
+        render_ready = 0;
+        controls_move_background_to_right(&background);
+
+        if (check_collision()) {
+          controls_move_background_to_left(&background);
+          render_ready = 1;
+        }
+      }
+
+      if (digitalRead(1) == HIGH && render_ready == 1) {
+        render_ready = 0;
+        controls_move_background_to_left(&background);
+
+        if (check_collision()) { // collision
+          controls_move_background_to_right(&background);
+          render_ready = 1;
+        }
+      }
+#endif
+
       if (background.x > TILEMAP_MAX_WIDTH_SCROLL) {
         engine_background_set_pos(0, background.y);
         reload_play_field();
@@ -592,22 +674,13 @@ void loop() {
         reload_play_field();
       }
 
-      if (analogRead(EncoderClick) < 940) {
-        //background.direction = !background.direction;
-        player_start_jump();
-      } else {
-        player_end_jump();
-      }
-    }
-
-    if ((speed % 512) == 0) {
-      speed = 0;
-
       if (
-          (player->on_ground == 0) || (player->on_ground == 1 && !check_ground())
+          (player->on_ground == 0) || (player->on_ground == 1 && !check_collision())
       ) {
+
+        // Euler simple integration
         player->y_speed += player->gravity;
-        if (player->y_speed >= 6) player->y_speed = 6;
+        if (player->y_speed >= 8) player->y_speed = 8;
 
         player->y += player->y_speed;
         if (player->y <= 0) player->y = 0;
@@ -617,30 +690,37 @@ void loop() {
         player->y = (player->y >> 3) << 3;
         player->y_speed = 0;
         player->on_ground = 1;
-        draw_play_field(background);
+      }
+
+      if (background.x != background.x_old) {
+        background.x_old = background.x;
+        adjust_play_field_cols();
+        need_render = 1;
+      }
+
+      if (background.y != background.y_old) {
+        background.y_old = background.y;
+        adjust_play_field_rows();
+        need_render = 1;
       }
 
       if (player->x_old != player->x) {
         player->x_old = player->x;
-        draw_play_field(background);
+        need_render = 1;
       }
 
       if (player->y_old != player->y) {
         player->y_old = player->y;
-        draw_play_field(background);
+        need_render = 1;
+      }
+
+      if (need_render) {
+        draw_play_field();
       }
     }
 
-    if (background.x != background.x_old) {
-      background.x_old = background.x;
-      adjust_play_field_cols();
-      draw_play_field(background);
-    }
-
-    if (background.y != background.y_old) {
-      background.y_old = background.y;
-      adjust_play_field_rows();
-      draw_play_field(background);
+    if (speed == 512) {
+      speed = 0;
     }
   }
 }

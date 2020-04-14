@@ -10,7 +10,7 @@ void engine_background_init(background_game_ptr background) {
   background->y_offset = 0;
   background->x_page = 0;
   background->y_page = 0;
-  background->speed = 8;
+  background->speed = 1;
   background->direction = 0;
 }
 
