@@ -479,15 +479,19 @@ void move_background() {
 void player_start_jump() {
   if (player->on_ground == 1 && player->is_jumping == 0) {
     player->is_jumping = 1;
-    player->y_speed = -8;
+    player->y_speed = -8; // Jump acceleration
     player->on_ground = 0;
   }
 }
 
 void player_end_jump() {
-  player->is_jumping = 0;
-  if (player->y_speed < 0) {
-    player->y_speed = 0;
+  // Minimum jump height allowed
+  if (player->y_speed >= -5) {
+    player->is_jumping = 0;
+
+    if (player->y_speed < 0) {
+      player->y_speed = 0;
+    }
   }
 }
 
@@ -501,11 +505,13 @@ void init_sprites() {
   player->x_old = 56;
   player->y = 40;
   player->y_old = 40;
+
+  // TODO: No se usan, pero sería interesante calcular aquí su posición dentro del background_data.
   player->x_main_grid_pos = 56 + 48;
   player->y_main_grid_pos = 40;
 
   player->x_speed = 8;
-  player->y_speed = 4;
+  player->y_speed = 2;
   player->gravity = 1;
   player->on_ground = 1;
 }
@@ -609,6 +615,7 @@ void setup() {
   init_sprites();
   reload_play_field();
   draw_play_field(); // Needed for draw sprites.
+  init_frame_control();
 
   // Some text...
   //plot_text(30, 22, PSTR("hello world"));
@@ -628,8 +635,13 @@ void loop() {
     // (++speed % 3) => Modulo 3 (33% speed)
     // (++speed & 3) => Modulo 4 (25% speed)
 
-    if (++speed % 512 == 0) { // Modulo 3 (33% speed)
+    //Prevent the game from running too fast
+    if (!next_frame()) {
+      return;
+    }
 
+    //if (++speed % 512 == 0) { // Modulo 3 (33% speed)
+    if (1 == 1) {
       if (analogRead(EncoderClick) < 940) {
         player_start_jump();
       } else {
@@ -674,10 +686,11 @@ void loop() {
         reload_play_field();
       }
 
+      // TODO: este check collision es constante; los calculos deben cachearse en el objeto player
+      // o background
       if (
           (player->on_ground == 0) || (player->on_ground == 1 && !check_collision())
       ) {
-
         // Euler simple integration
         player->y_speed += player->gravity;
         if (player->y_speed >= 8) player->y_speed = 8;
@@ -723,4 +736,51 @@ void loop() {
       speed = 0;
     }
   }
+}
+
+// Framecontrol
+void init_frame_control() {
+  set_frame_duration(30);
+  frame_count = 0;
+  just_rendered = false;
+}
+
+void set_frame_duration(byte duration) {
+  each_frame_millis = duration;
+}
+
+_Bool next_frame(void) {
+  byte now = (byte) millis();
+  byte frame_duration_ms = now - this_frame_start;
+
+  if (just_rendered) {
+    last_frame_duration_ms = frame_duration_ms;
+    just_rendered = false;
+
+    return false;
+  } else if (frame_duration_ms < each_frame_millis) {
+    if (++frame_duration_ms < each_frame_millis) {
+      idle();
+    }
+
+    return false;
+  }
+
+  // pre render
+  just_rendered = true;
+  this_frame_start = now;
+  frame_count++;
+
+  return true;
+}
+
+void idle() {
+  // power safe mode...
+//  SMCR = _BV(SE); // select idle mode and enable sleeping
+//  sleep_cpu();
+//  SMCR = 0; // disable sleeping
+}
+
+_Bool every_x_frame(byte frames) {
+  return frame_count % frames == 0;
 }

@@ -14,6 +14,13 @@ void adjust_play_field_cols(void);
 void setup(void);
 void loop(void);
 
+// Framerate control
+void init_frame_control(void);
+void set_frame_duration(byte duration);
+_Bool next_frame(void);
+_Bool every_x_frame(byte frames);
+void idle(void);
+
 // Functions for game (move background and player)
 void move_background_to(_Bool increment);
 void move_background(void);

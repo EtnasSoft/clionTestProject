@@ -109,6 +109,13 @@ typedef struct map_game_typ {
   byte *data;
 } map_game, *map_game_ptr;
 
+// Framerate
+byte each_frame_millis;
+byte this_frame_start;
+byte last_frame_duration_ms;
+uint16_t frame_count;
+_Bool just_rendered;
+
 
 // GLOBALS (Player and Game vars)
 // ////////////////////////////////////////////////////////////////////
