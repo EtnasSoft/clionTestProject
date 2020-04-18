@@ -24,8 +24,6 @@ void idle(void);
 // Functions for game (move background and player)
 void move_background_to(_Bool increment);
 void move_background(void);
-void player_start_jump(void);
-void player_end_jump(void);
 _Bool check_collision(void);
 _Bool check_ground(void);
 

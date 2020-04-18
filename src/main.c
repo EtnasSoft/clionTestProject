@@ -12,6 +12,7 @@
 #include "assets_manager.h"
 #include "controls.h"
 #include "plot.h"
+#include "player.h"
 
 // DEFINES
 // ////////////////////////////////////////////////////////////////////
@@ -476,49 +477,14 @@ void move_background() {
 }
 #endif
 
-void player_start_jump() {
-  if (player->on_ground == 1 && player->is_jumping == 0) {
-    player->is_jumping = 1;
-    player->y_speed = -8; // Jump acceleration
-    player->on_ground = 0;
-  }
-}
-
-void player_end_jump() {
-  // Minimum jump height allowed
-  if (player->y_speed >= -5) {
-    player->is_jumping = 0;
-
-    if (player->y_speed < 0) {
-      player->y_speed = 0;
-    }
-  }
-}
-
 void init_sprites() {
   memset(object_list, 0, sizeof(object_list));
-
-  // big sprite
-  // TODO: llevarse esto a un fichero de tipo player.c que tenga estos metodos de set_pos igual que el background
-  player->bType = 0x80;
-  player->x = 56;
-  player->x_old = 56;
-  player->y = 40;
-  player->y_old = 40;
-
-  // TODO: No se usan, pero sería interesante calcular aquí su posición dentro del background_data.
-  player->x_main_grid_pos = 56 + 48;
-  player->y_main_grid_pos = 40;
-
-  player->x_speed = 8;
-  player->y_speed = 2;
-  player->gravity = 1;
-  player->on_ground = 1;
+  player_init(player);
 }
 
 _Bool check_collision() {
-  int current_row = (background.y_page + (player->y >> 3) % PLAYFIELD_HEIGHT) * PLAYFIELD_WIDTH,
-    base = (background.x_page + (player->x >> 3)) % PLAYFIELD_WIDTH,
+  int current_row = (background.y_page + player->y_page % PLAYFIELD_HEIGHT) * PLAYFIELD_WIDTH,
+    base = (background.x_page + player->x_page) % PLAYFIELD_WIDTH,
     prev_pos_top = current_row + base,
     prev_pos_bottom = prev_pos_top + PLAYFIELD_WIDTH,
     next_pos_top = current_row + ((base + 2) % PLAYFIELD_WIDTH),
@@ -539,8 +505,8 @@ _Bool check_collision() {
 
 _Bool check_ground() {
   // "2" is the player height in 'pages' => 16 >> 3 = 2
-  int current_row = ((background.y_page + (player->y >> 3) + 2) % PLAYFIELD_HEIGHT) * PLAYFIELD_WIDTH,
-      base_1 = (background.x_page + (player->x >> 3)) % PLAYFIELD_WIDTH,
+  int current_row = ((background.y_page + player->y_page + 2) % PLAYFIELD_HEIGHT) * PLAYFIELD_WIDTH,
+      base_1 = (background.x_page + player->x_page) % PLAYFIELD_WIDTH,
       base_2 = (base_1 + 2) % PLAYFIELD_WIDTH,
       tile_floor_left = current_row + base_1,
       tile_floor_right = current_row + base_2;
@@ -551,49 +517,7 @@ _Bool check_ground() {
 
   return 0;
 }
-/*
-  _Bool check_collision_2() {
-    int current_player_pos_y_in_grid = ((background.y + player->y) >> 3) * TILEMAP_WIDTH,
-      current_player_pos_x_in_grid = ((background.x + player->x) >> 3) - 1,
-      current_player_byte_pos_in_grid = current_player_pos_y_in_grid + current_player_pos_x_in_grid,
-      tile_top_before = current_player_byte_pos_in_grid + 1,
-      tile_top_after = current_player_byte_pos_in_grid + 2;
 
-    int data_tile_top_before = pgm_read_byte(&map.data[tile_top_before]),
-      data_tile_bottom_before = pgm_read_byte(&map.data[tile_top_before + TILEMAP_WIDTH]),
-      data_tile_top_after = pgm_read_byte(&map.data[tile_top_after]),
-      data_tile_bottom_after = pgm_read_byte(&map.data[tile_top_after + TILEMAP_WIDTH]);
-
-    if (
-        (data_tile_top_before == 1) ||
-        (data_tile_bottom_before == 1) ||
-        (data_tile_top_after == 1) ||
-        (data_tile_bottom_after == 1) ||
-        (player->on_ground == 0 && check_ground())
-    ) {
-      return 1;
-    }
-
-    return 0;
-  }
-*/
-/*
-  _Bool check_ground_old() {
-    int current_player_pos_y_in_grid = ((background.y + player->y) >> 3) * TILEMAP_WIDTH,
-        current_player_pos_x_in_grid = ((background.x + player->x) >> 3) - 1,
-        current_player_byte_pos_in_grid = current_player_pos_y_in_grid + current_player_pos_x_in_grid,
-        tile_floor_left = current_player_byte_pos_in_grid + 1 + TILEMAP_WIDTH + TILEMAP_WIDTH;
-
-    int data_tile_floor_left = pgm_read_byte(&map.data[tile_floor_left]),
-        data_tile_floor_right = pgm_read_byte(&map.data[tile_floor_left + 1]);
-
-    if (data_tile_floor_left == 1 || data_tile_floor_right == 1) {
-      return 1;
-    }
-
-    return 0;
-  }
-*/
 void setup() {
   delay(50); // wait for the OLED to fully power up
 
@@ -643,9 +567,9 @@ void loop() {
     //if (++speed % 512 == 0) { // Modulo 3 (33% speed)
     if (1 == 1) {
       if (analogRead(EncoderClick) < 940) {
-        player_start_jump();
+        player_start_jump(player);
       } else {
-        player_end_jump();
+        player_end_jump(player);
       }
 
 #ifdef DIGITAL
@@ -663,7 +587,7 @@ void loop() {
         render_ready = 0;
         controls_move_background_to_left(&background);
 
-        if (check_collision()) { // collision
+        if (check_collision()) {
           controls_move_background_to_right(&background);
           render_ready = 1;
         }
@@ -691,18 +615,11 @@ void loop() {
       if (
           (player->on_ground == 0) || (player->on_ground == 1 && !check_collision())
       ) {
-        // Euler simple integration
-        player->y_speed += player->gravity;
-        if (player->y_speed >= 8) player->y_speed = 8;
-
-        player->y += player->y_speed;
-        if (player->y <= 0) player->y = 0;
+        player_apply_gravity(player);
       }
 
       if (check_ground()) {
-        player->y = (player->y >> 3) << 3;
-        player->y_speed = 0;
-        player->on_ground = 1;
+        player_fix_ground_position(player);
       }
 
       if (background.x != background.x_old) {
@@ -739,6 +656,7 @@ void loop() {
 }
 
 // Framecontrol
+// TODO: Llevar al engine.h/c
 void init_frame_control() {
   set_frame_duration(30);
   frame_count = 0;

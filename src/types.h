@@ -73,10 +73,14 @@ typedef struct {
 typedef struct gfx_object_typ {
   int x;
   int y;
-  int x_main_grid_pos;
-  int y_main_grid_pos;
+//  int x_main_grid_pos;
+//  int y_main_grid_pos;
   int x_old;
   int y_old;
+  int x_offset;
+  int y_offset;
+  int x_page;
+  int y_page;
   byte bType;
   byte x_speed;
   int y_speed; // can be negative
