@@ -313,117 +313,8 @@ void draw_play_field() {
 }
 
 void reload_play_field(void) {
-  byte x, y, currentPlayFieldByte, nextPlayFieldByte,
-      currentRow = background.y_page,
-      currentCol = background.x_page,
-      offsetCol = currentCol % PLAYFIELD_WIDTH;
-
-  int nextTileByte;
-
-  for (y = 0; y < PLAYFIELD_HEIGHT; y++) {
-    currentPlayFieldByte = ((currentRow + y) * PLAYFIELD_WIDTH) % PLAYFIELD_SIZE;
-    currentPlayFieldByte += offsetCol;
-
-    nextPlayFieldByte = currentPlayFieldByte;
-
-    // Use the fact that 32 * x = x << 5
-    nextTileByte = ((currentRow + y) % TILEMAP_HEIGHT) * TILEMAP_WIDTH;
-    nextTileByte += currentCol;
-
-    for (x = 0; x < PLAYFIELD_WIDTH; x++) {
-      memcpy_P(&background_data[nextPlayFieldByte++], &map.data[nextTileByte++], 1);
-
-      if ((nextPlayFieldByte % PLAYFIELD_WIDTH) == 0) {
-        nextPlayFieldByte -= PLAYFIELD_WIDTH;
-      }
-
-      if ((nextTileByte % TILEMAP_WIDTH) == 0) {
-        nextTileByte -= TILEMAP_WIDTH;
-      }
-    }
-  }
-
+  engine_background_reload();
   draw_play_field();
-}
-
-// TODO: Estos dos metodos tienen que irse a engine.c
-void adjust_play_field_rows(void) {
-  int currentRow = background.y_page,
-      currentCol = background.x_page,
-      offsetCol = currentCol % PLAYFIELD_WIDTH,
-      offsetRow = currentRow % PLAYFIELD_HEIGHT,
-
-      prevPlayFieldRow = (offsetRow == 0 ? PLAYFIELD_HEIGHT : offsetRow) - 1,
-      nextPlayFieldRow = (offsetRow + VIEWPORT_HEIGHT) % PLAYFIELD_HEIGHT,
-      prevPlayFieldByte = prevPlayFieldRow * PLAYFIELD_WIDTH,
-      nextPlayFieldByte = nextPlayFieldRow * PLAYFIELD_WIDTH;
-
-  // Tiles
-  int prevTileRow = ((currentRow == 0 ? TILEMAP_HEIGHT : currentRow) - 1) * TILEMAP_WIDTH,
-      nextTileRow = ((currentRow + VIEWPORT_HEIGHT) % TILEMAP_HEIGHT) * TILEMAP_WIDTH,
-      nextTileByte,
-      prevTileByte,
-      carry;
-
-  if (prevPlayFieldByte >= PLAYFIELD_SIZE) {
-    prevPlayFieldByte -= PLAYFIELD_SIZE;
-  }
-
-  if (nextPlayFieldByte >= PLAYFIELD_SIZE) {
-    nextPlayFieldByte -= PLAYFIELD_SIZE;
-  }
-
-  prevPlayFieldByte += offsetCol;
-  nextPlayFieldByte += offsetCol;
-
-  for (byte x = 0; x < PLAYFIELD_WIDTH; x++) {
-    carry = (currentCol + x) % TILEMAP_WIDTH;
-    nextTileByte = (nextTileRow + carry);
-    prevTileByte = (prevTileRow + carry);
-
-    memcpy_P(&background_data[prevPlayFieldByte++], &map.data[prevTileByte], 1);
-    memcpy_P(&background_data[nextPlayFieldByte++], &map.data[nextTileByte], 1);
-
-    if (nextPlayFieldByte % PLAYFIELD_WIDTH == 0) {
-      prevPlayFieldByte -= PLAYFIELD_WIDTH;
-      nextPlayFieldByte -= PLAYFIELD_WIDTH;
-    }
-  }
-}
-
-void adjust_play_field_cols(void) {
-  byte currentRow = background.y_page,
-      currentCol = background.x_page,
-      offsetRow = currentRow % PLAYFIELD_HEIGHT,
-      offsetCol = currentCol % PLAYFIELD_WIDTH,
-      currentPlayFieldByte = offsetRow * PLAYFIELD_WIDTH;
-
-  int nextTileByte,
-      prevTileByte,
-      currentTileByte = currentRow * TILEMAP_WIDTH,
-      nextPlayFieldByte = currentPlayFieldByte + ((offsetCol + VIEWPORT_WIDTH) % PLAYFIELD_WIDTH),
-      prevPlayFieldByte = offsetCol == 0
-        ? currentPlayFieldByte + PLAYFIELD_WIDTH - 1
-        : currentPlayFieldByte + (offsetCol - 1);
-
-  if (prevPlayFieldByte < 0) {
-    prevPlayFieldByte += PLAYFIELD_WIDTH;
-  }
-
-  nextTileByte = currentTileByte + ((currentCol + VIEWPORT_WIDTH) % TILEMAP_WIDTH);
-  prevTileByte = currentCol == 0
-     ? currentTileByte + PLAYFIELD_WIDTH - 1
-     : currentTileByte + (currentCol -1);
-
-  for (byte x = 0; x < PLAYFIELD_HEIGHT; x++) {
-    memcpy_P(&background_data[nextPlayFieldByte], &map.data[nextTileByte], 1);
-    memcpy_P(&background_data[prevPlayFieldByte], &map.data[prevTileByte], 1);
-
-    nextPlayFieldByte = (nextPlayFieldByte + PLAYFIELD_WIDTH) % PLAYFIELD_SIZE;
-    prevPlayFieldByte = (prevPlayFieldByte + PLAYFIELD_WIDTH) % PLAYFIELD_SIZE;
-    nextTileByte = (nextTileByte + TILEMAP_WIDTH) % TILEMAP_SIZE;
-    prevTileByte = (prevTileByte + TILEMAP_WIDTH) % TILEMAP_SIZE;
-  }
 }
 
 #ifdef ANALOG
@@ -561,8 +452,6 @@ void setup() {
 }
 
 void loop() {
-  _Bool need_render = 0;
-
   while (1) {
     //Prevent the game from running too fast
     if (!engine_next_frame()) {
@@ -635,34 +524,10 @@ void loop() {
       player_fix_ground_position(player);
     }
 
-    // TODO: Estos dos checks tienen que irse a engice.c con un 'updateBackground()'.
-    // Dependen de adjust_play_field_cols y adjust_play_field_rows, ambos también se van a engine.c
-    // También depende de need_render, y vamos a tener que hacer dos: un background.need_render en engine.c
-    // y otro en player.need_render. Luego, comprobariamos todos (n) en una función:
-    // check_for_render() { return background.need_render || player.need_render || ...}
-    if (background.x != background.x_old) {
-      background.x_old = background.x;
-      adjust_play_field_cols();
-      need_render = 1;
-    }
+    engine_background_update();
+    player_update(player);
 
-    if (background.y != background.y_old) {
-      background.y_old = background.y;
-      adjust_play_field_rows();
-      need_render = 1;
-    }
-
-    if (player->x_old != player->x) {
-      player->x_old = player->x;
-      need_render = 1;
-    }
-
-    if (player->y_old != player->y) {
-      player->y_old = player->y;
-      need_render = 1;
-    }
-
-    if (need_render) {
+    if (background.need_render || player->need_render) {
       draw_play_field();
     }
   }

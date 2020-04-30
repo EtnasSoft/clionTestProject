@@ -19,6 +19,7 @@ void player_init(gfx_object_ptr player) {
   player->y_speed = 2;
   player->gravity = 1;
   player->on_ground = 1;
+  player->need_render = 1;
 }
 
 void player_start_jump(gfx_object_ptr player) {
@@ -85,4 +86,16 @@ void player_move_to_right(gfx_object_ptr player) {
   player->x += player->x_speed;
   player->x_offset = player->x & 7;
   player->x_page = player->x >> 3;
+}
+
+void player_update(gfx_object_ptr player) {
+  if (player->x_old != player->x) {
+    player->x_old = player->x;
+    player->need_render = 1;
+  }
+
+  if (player->y_old != player->y) {
+    player->y_old = player->y;
+    player->need_render = 1;
+  }
 }

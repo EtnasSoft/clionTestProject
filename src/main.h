@@ -12,8 +12,6 @@ void reload_play_field(void);
 void draw_shifted_char(byte *s1, byte *s2, byte *d, byte bXOff, byte bYOff);
 void draw_sprites(byte y, byte *pBuf, gfx_object *pList, byte bCount);
 void draw_play_field(void);
-void adjust_play_field_rows(void);
-void adjust_play_field_cols(void);
 
 void setup(void);
 void loop(void);

@@ -89,6 +89,7 @@ typedef struct gfx_object_typ {
   byte gravity;
   _Bool on_ground;
   _Bool is_jumping; // prevent keep jumping while jump button is pressed
+  _Bool need_render;
 } gfx_object, *gfx_object_ptr;
 
 // TODO: Los tipos int son excesivos. Por encima del byte (uint8_t), estaría:
@@ -106,6 +107,7 @@ typedef struct background_game_typ {
   int y_page;
   byte speed;
   _Bool direction;
+  _Bool need_render;
 } background_game, *background_game_ptr;
 
 typedef struct map_game_typ {

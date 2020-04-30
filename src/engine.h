@@ -27,11 +27,18 @@ _Bool engine_every_x_frame(byte frames);
 void engine_background_init(background_game_ptr background);
 const background_game *engine_background_get(void);
 int engine_background_set(const background_game *new_background_config);
-void engine_background_draw(background_game_ptr background);
-void engine_background_reload(background_game_ptr background, map_game_ptr map);
-void engine_background_adjust(background_game_ptr background, map_game_ptr map);
+
+
 void engine_background_set_pos(uint16_t x, uint16_t y);
 
+void engine_background_adjust_rows(void);
+void engine_background_adjust_cols(void);
+void engine_background_update(void);
+void engine_background_reload(void);
+
+//void engine_background_reload(background_game_ptr background, map_game_ptr map);
+//void engine_background_adjust(background_game_ptr background, map_game_ptr map);
+//void engine_background_draw(background_game_ptr background);
 //void engine_shifter_char(byte *s1, byte *s2, byte *d, byte bXOff, byte bYOff);
 //void engine_draw_sprites(byte y, byte *pBuf, gfx_object *pList, byte bCount);
 

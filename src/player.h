@@ -20,5 +20,6 @@ void player_move_to_up(gfx_object_ptr player);
 void player_move_to_down(gfx_object_ptr player);
 void player_move_to_left(gfx_object_ptr player);
 void player_move_to_right(gfx_object_ptr player);
+void player_update(gfx_object_ptr player);
 
 #endif // PLAYER_H
