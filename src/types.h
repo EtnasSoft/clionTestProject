@@ -1,6 +1,8 @@
 #ifndef CLIONTESTPROJECT_TYPES_H
 #define CLIONTESTPROJECT_TYPES_H
 
+// INCLUDES
+// ////////////////////////////////////////////////////////////////////
 #include <stdint.h>
 #include <stdlib.h>
 
@@ -112,14 +114,6 @@ typedef struct map_game_typ {
   int size;
   byte *data;
 } map_game, *map_game_ptr;
-
-// Framerate
-byte each_frame_millis;
-byte this_frame_start;
-byte last_frame_duration_ms;
-uint16_t frame_count;
-_Bool just_rendered;
-
 
 // GLOBALS (Player and Game vars)
 // ////////////////////////////////////////////////////////////////////

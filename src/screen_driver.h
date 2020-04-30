@@ -1,6 +1,8 @@
 #ifndef SCREEN_DRIVER_H
 #define SCREEN_DRIVER_H
 
+// PROTOTYPES
+// ////////////////////////////////////////////////////////////////////
 void screen_driver_init(int flip, int invert);
 void screen_driver_invert(void);
 void screen_driver_rotate(void);

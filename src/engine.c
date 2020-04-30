@@ -1,5 +1,53 @@
 #include "types.h"
 #include "engine.h"
+#include <stdbool.h>
+#include <Arduino.h>
+
+void engine_init_frame_control() {
+  engine_set_frame_duration(30);
+  frame_count = 0;
+  just_rendered = false;
+}
+
+void engine_set_frame_duration(byte duration) {
+  each_frame_millis = duration;
+}
+
+_Bool engine_next_frame() {
+  byte now = (byte) millis();
+  byte frame_duration_ms = now - this_frame_start;
+
+  if (just_rendered) {
+    last_frame_duration_ms = frame_duration_ms;
+    just_rendered = false;
+
+    return false;
+  } else if (frame_duration_ms < each_frame_millis) {
+    if (++frame_duration_ms < each_frame_millis) {
+    engine_idle();
+    }
+
+    return false;
+  }
+
+  // pre render
+  just_rendered = true;
+  this_frame_start = now;
+  frame_count++;
+
+  return true;
+}
+
+void engine_idle() {
+  // power safe mode...
+  //  SMCR = _BV(SE); // select idle mode and enable sleeping
+  //  sleep_cpu();
+  //  SMCR = 0; // disable sleeping
+}
+
+_Bool engine_every_x_frame(byte frames) {
+  return frame_count % frames == 0;
+}
 
 void engine_background_init(background_game_ptr background) {
   background->x = 0;

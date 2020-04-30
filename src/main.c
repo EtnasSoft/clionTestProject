@@ -22,7 +22,6 @@
 // GLOBALS (Player and Game vars)
 // ////////////////////////////////////////////////////////////////////
 gfx_object_ptr player = object_list; // By default, player points to object_list[0]
-int speed = 0;
 _Bool render_ready = 1;
 const int EncoderA = 2; // PB2, pin 7 (INT0)
 const int EncoderB = 1; // PB1, pin 6
@@ -55,6 +54,7 @@ void draw_sprites(byte y, byte *pBuf, gfx_object *pList, byte bCount) {
     pObject = &pList[i];
     bSprite = pObject->bType;          // index
     bSize = (bSprite & 0x80) ? 16 : 8; // big or small sprite
+
     // see if it's visible
     if (pObject->y >= y + 8) // past bottom
       continue;
@@ -62,23 +62,32 @@ void draw_sprites(byte y, byte *pBuf, gfx_object *pList, byte bCount) {
       continue;
     if (pObject->x >= 128) // off right edge
       continue;
+
     // It's visible on this line; draw it
     bSprite &= 0x7f;       // sprite index
     d = &pBuf[pObject->x]; // destination pointer
+
     if (bSize == 16) {
       s = (byte *)&ucBigSprites[bSprite * 64];
-      if (pObject->y + 8 <= y) // special case - only bottom half drawn
+
+      if (pObject->y + 8 <= y) {
+        // special case - only bottom half drawn
         s += 16;
+      }
+
       bYOff = pObject->y & 7;
       bWidth = 16;
-      if (128 - pObject->x < 16)
+
+      if (128 - pObject->x < 16) {
         bWidth = 128 - pObject->x;
+      }
+
       // 4 possible cases:
       // byte aligned - single source, not shifted
       // single source (shifted, top or bottom row)
       // double source (middle) both need shifting
-      if (bYOff == 0) // simplest case
-      {
+      if (bYOff == 0) {
+        // simplest case
         for (x = 0; x < bWidth; x++) {
           cOld = d[0];
           mask = pgm_read_byte(s);
@@ -88,8 +97,8 @@ void draw_sprites(byte y, byte *pBuf, gfx_object *pList, byte bCount) {
           cOld |= cNew;
           *d++ = cOld;
         }
-      } else if (pObject->y + 8 < y) // only bottom half of sprite drawn
-      {
+      } else if (pObject->y + 8 < y)  {
+        // only bottom half of sprite drawn
         for (x = 0; x < bWidth; x++) {
           mask = pgm_read_byte(s);
           cNew = pgm_read_byte(s + 32);
@@ -102,8 +111,8 @@ void draw_sprites(byte y, byte *pBuf, gfx_object *pList, byte bCount) {
           cOld |= cNew;
           *d++ = cOld;
         }                        // for x
-      } else if (pObject->y > y) // only top half of sprite drawn
-      {
+      } else if (pObject->y > y) {
+        // only top half of sprite drawn
         for (x = 0; x < bWidth; x++) {
           mask = pgm_read_byte(s);
           cNew = pgm_read_byte(s + 32);
@@ -116,8 +125,8 @@ void draw_sprites(byte y, byte *pBuf, gfx_object *pList, byte bCount) {
           cOld |= cNew;
           *d++ = cOld;
         }    // for x
-      } else // most difficult - part of top and bottom drawn together
-      {
+      } else {
+        // most difficult - part of top and bottom drawn together
         byte mask2, cNew2;
         for (x = 0; x < bWidth; x++) {
           mask = pgm_read_byte(s);
@@ -137,8 +146,8 @@ void draw_sprites(byte y, byte *pBuf, gfx_object *pList, byte bCount) {
           *d++ = cOld;
         } // for x
       }
-    } else // 8x8 sprite
-    {
+    } else {
+      // 8x8 sprite
       s = (byte *)&ucSprites[bSprite * 16];
       bYOff = pObject->y & 7;
       bWidth = 8;
@@ -337,6 +346,7 @@ void reload_play_field(void) {
   draw_play_field();
 }
 
+// TODO: Estos dos metodos tienen que irse a engine.c
 void adjust_play_field_rows(void) {
   int currentRow = background.y_page,
       currentCol = background.x_page,
@@ -539,7 +549,7 @@ void setup() {
   init_sprites();
   reload_play_field();
   draw_play_field(); // Needed for draw sprites.
-  init_frame_control();
+  engine_init_frame_control();
 
   // Some text...
   //plot_text(30, 22, PSTR("hello world"));
@@ -554,151 +564,106 @@ void loop() {
   _Bool need_render = 0;
 
   while (1) {
-    // Desde aquí se puede definir la velocidad a la que responde el juego:
-    // Estaría bien sacar el valor a una variable:
-    // (++speed % 3) => Modulo 3 (33% speed)
-    // (++speed & 3) => Modulo 4 (25% speed)
-
     //Prevent the game from running too fast
-    if (!next_frame()) {
+    if (!engine_next_frame()) {
       return;
     }
 
-    //if (++speed % 512 == 0) { // Modulo 3 (33% speed)
-    if (1 == 1) {
-      if (analogRead(EncoderClick) < 940) {
-        player_start_jump(player);
-      } else {
-        player_end_jump(player);
-      }
+    if (analogRead(EncoderClick) < 940) {
+      player_start_jump(player);
+    } else {
+      player_end_jump(player);
+    }
 
 #ifdef DIGITAL
-      if (digitalRead(2) == HIGH && render_ready == 1) {
+    if (digitalRead(2) == HIGH && render_ready == 1) {
+      render_ready = 0;
+      controls_move_background_to_right(&background);
+
+      if (check_collision()) {
+        controls_move_background_to_left(&background);
+        render_ready = 1;
+      }
+    }
+
+    if (digitalRead(1) == HIGH && render_ready == 1) {
+      render_ready = 0;
+      controls_move_background_to_left(&background);
+
+      if (check_collision()) {
+        controls_move_background_to_right(&background);
+        render_ready = 1;
+      }
+    }
+
+      /*if ((analogRead(2) >= 0) && (analogRead(2) < 100)){
         render_ready = 0;
         controls_move_background_to_right(&background);
-
-        if (check_collision()) {
-          controls_move_background_to_left(&background);
-          render_ready = 1;
-        }
       }
 
-      if (digitalRead(1) == HIGH && render_ready == 1) {
+      if ((analogRead(2) > 200) && (analogRead(2) < 500)){
         render_ready = 0;
         controls_move_background_to_left(&background);
-
-        if (check_collision()) {
-          controls_move_background_to_right(&background);
-          render_ready = 1;
-        }
-      }
+      }*/
 #endif
 
-      if (background.x > TILEMAP_MAX_WIDTH_SCROLL) {
-        engine_background_set_pos(0, background.y);
-        reload_play_field();
-      } else if (background.x < 0) {
-        engine_background_set_pos(TILEMAP_MAX_WIDTH_SCROLL, background.y);
-        reload_play_field();
-      }
-
-      if (background.y > TILEMAP_MAX_HEIGHT_SCROLL) {
-        engine_background_set_pos(background.x, 0);
-        reload_play_field();
-      } else if (background.y < 0) {
-        engine_background_set_pos(background.x, TILEMAP_MAX_HEIGHT_SCROLL);
-        reload_play_field();
-      }
-
-      // TODO: este check collision es constante; los calculos deben cachearse en el objeto player
-      // o background
-      if (
-          (player->on_ground == 0) || (player->on_ground == 1 && !check_collision())
-      ) {
-        player_apply_gravity(player);
-      }
-
-      if (check_ground()) {
-        player_fix_ground_position(player);
-      }
-
-      if (background.x != background.x_old) {
-        background.x_old = background.x;
-        adjust_play_field_cols();
-        need_render = 1;
-      }
-
-      if (background.y != background.y_old) {
-        background.y_old = background.y;
-        adjust_play_field_rows();
-        need_render = 1;
-      }
-
-      if (player->x_old != player->x) {
-        player->x_old = player->x;
-        need_render = 1;
-      }
-
-      if (player->y_old != player->y) {
-        player->y_old = player->y;
-        need_render = 1;
-      }
-
-      if (need_render) {
-        draw_play_field();
-      }
+    if (background.x > TILEMAP_MAX_WIDTH_SCROLL) {
+      engine_background_set_pos(0, background.y);
+      reload_play_field();
+    } else if (background.x < 0) {
+      engine_background_set_pos(TILEMAP_MAX_WIDTH_SCROLL, background.y);
+      reload_play_field();
     }
 
-    if (speed == 512) {
-      speed = 0;
+    if (background.y > TILEMAP_MAX_HEIGHT_SCROLL) {
+      engine_background_set_pos(background.x, 0);
+      reload_play_field();
+    } else if (background.y < 0) {
+      engine_background_set_pos(background.x, TILEMAP_MAX_HEIGHT_SCROLL);
+      reload_play_field();
+    }
+
+    // TODO: este check collision es constante; los calculos deben cachearse en el objeto player
+    // o background
+    if (
+        (player->on_ground == 0) || (player->on_ground == 1 && !check_collision())
+    ) {
+      player_apply_gravity(player);
+    }
+
+    if (check_ground()) {
+      player_fix_ground_position(player);
+    }
+
+    // TODO: Estos dos checks tienen que irse a engice.c con un 'updateBackground()'.
+    // Dependen de adjust_play_field_cols y adjust_play_field_rows, ambos también se van a engine.c
+    // También depende de need_render, y vamos a tener que hacer dos: un background.need_render en engine.c
+    // y otro en player.need_render. Luego, comprobariamos todos (n) en una función:
+    // check_for_render() { return background.need_render || player.need_render || ...}
+    if (background.x != background.x_old) {
+      background.x_old = background.x;
+      adjust_play_field_cols();
+      need_render = 1;
+    }
+
+    if (background.y != background.y_old) {
+      background.y_old = background.y;
+      adjust_play_field_rows();
+      need_render = 1;
+    }
+
+    if (player->x_old != player->x) {
+      player->x_old = player->x;
+      need_render = 1;
+    }
+
+    if (player->y_old != player->y) {
+      player->y_old = player->y;
+      need_render = 1;
+    }
+
+    if (need_render) {
+      draw_play_field();
     }
   }
-}
-
-// Framecontrol
-// TODO: Llevar al engine.h/c
-void init_frame_control() {
-  set_frame_duration(30);
-  frame_count = 0;
-  just_rendered = false;
-}
-
-void set_frame_duration(byte duration) {
-  each_frame_millis = duration;
-}
-
-_Bool next_frame(void) {
-  byte now = (byte) millis();
-  byte frame_duration_ms = now - this_frame_start;
-
-  if (just_rendered) {
-    last_frame_duration_ms = frame_duration_ms;
-    just_rendered = false;
-
-    return false;
-  } else if (frame_duration_ms < each_frame_millis) {
-    if (++frame_duration_ms < each_frame_millis) {
-      idle();
-    }
-
-    return false;
-  }
-
-  // pre render
-  just_rendered = true;
-  this_frame_start = now;
-  frame_count++;
-
-  return true;
-}
-
-void idle() {
-  // power safe mode...
-//  SMCR = _BV(SE); // select idle mode and enable sleeping
-//  sleep_cpu();
-//  SMCR = 0; // disable sleeping
-}
-
-_Bool every_x_frame(byte frames) {
-  return frame_count % frames == 0;
 }
