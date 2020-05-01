@@ -39,6 +39,12 @@
 #define PLAYFIELD_HEIGHT (VIEWPORT_HEIGHT + EDGES) // AXIS Y: horizontal rows, map height size; min 8+2 (SCREEN_HEIGHT / 8) + Edges
 #define PLAYFIELD_SIZE (PLAYFIELD_WIDTH * PLAYFIELD_HEIGHT) // AXIS Y: horizontal rows, map height size; min 8+2 (SCREEN_HEIGHT / 8) + Edges
 
+// TODO: estas variables ya están definidas en el assets, en el 'level' correspondiente...
+//  no tiene sentido esta duplicidad.
+#define TILEMAP_HEIGHT 8
+#define TILEMAP_WIDTH 128
+#define TILEMAP_SIZE (TILEMAP_HEIGHT * TILEMAP_WIDTH)
+
 #define TILEMAP_MAX_HEIGHT_SCROLL ((TILEMAP_HEIGHT - 1) * MODULE) + 7 // 248
 #define TILEMAP_MAX_WIDTH_SCROLL ((TILEMAP_WIDTH - 1) * MODULE) + 7 // 248
 
@@ -46,11 +52,6 @@
 #define SCREEN_BUFFER_WIDTH PLAYFIELD_WIDTH    // 18
 #define SCREEN_BUFFER_HEIGHT PLAYFIELD_HEIGHT   // 10
 #define SCREEN_BUFFER_SIZE PLAYFIELD_SIZE // 180
-
-// TODO: estas variables ya están definidas en el assets, en el nivel correspondiente... no tiene sentido esta duplicidad.
-#define TILEMAP_HEIGHT 8
-#define TILEMAP_WIDTH 128
-#define TILEMAP_SIZE (TILEMAP_HEIGHT * TILEMAP_WIDTH)
 
 #define DIRECT_PORT
 #define I2CPORT PORTB

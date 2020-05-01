@@ -20,6 +20,6 @@ void loop(void);
 void move_background_to(_Bool increment);
 void move_background(void);
 _Bool check_collision(void);
-_Bool check_ground(void);
+_Bool check_ground_for(gfx_object_ptr sprite);
 
 #endif // MAIN_H

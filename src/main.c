@@ -52,34 +52,36 @@ void draw_sprites(byte y, byte *pBuf, gfx_object *pList, byte bCount) {
   gfx_object *pObject;
   for (i = 0; i < bCount; i++) {
     pObject = &pList[i];
-    bSprite = pObject->bType;          // index
+    bSprite = pObject->bType; // sprite index
     bSize = (bSprite & 0x80) ? 16 : 8; // big or small sprite
 
-    // see if it's visible
-    if (pObject->y >= y + 8) // past bottom
-      continue;
+    // If sprite is not visible, we forces the next iteration of the loop.
+    if (pObject->y >= y + 8) // past bottom (8 = row height)
+      continue; // next iteration
     if (pObject->y + bSize <= y) // above top
-      continue;
-    if (pObject->x >= 128) // off right edge
-      continue;
+      continue; // next iteration
+    if (pObject->x >= 128) // off right edge (128 = resolution width or SCREEN_WIDTH)
+      continue; // next iteration
 
     // It's visible on this line; draw it
-    bSprite &= 0x7f;       // sprite index
+    bSprite &= 0x7f;       // sprite index (0x7f => 127) "How many indexes is above 128"
     d = &pBuf[pObject->x]; // destination pointer
 
     if (bSize == 16) {
-      s = (byte *)&ucBigSprites[bSprite * 64];
+      // A 16x16px sprite has 32 mask bytes followed by 32 pattern bytes. 64 bytes in total.
+      s = (byte *)&ucBigSprites[bSprite * 64]; // 64 is the sum of 32bytes (mask) + 32bytes (pattern):
 
       if (pObject->y + 8 <= y) {
         // special case - only bottom half drawn
-        s += 16;
+        s += 16; // Half of 32
       }
 
       bYOff = pObject->y & 7;
-      bWidth = 16;
+      bWidth = 16; // 16 => sprite width. Better in pObject->width.
 
-      if (128 - pObject->x < 16) {
-        bWidth = 128 - pObject->x;
+      // Check if sprite is touching the sides of the screen.
+      if (128 - pObject->x < 16) { // 128 SCREEN_WIDTH, 16 pObject->width OR sprite width
+        bWidth = 128 - pObject->x; // bWidth is only for print the portion of the sprite visible in the loop.
       }
 
       // 4 possible cases:
@@ -90,18 +92,18 @@ void draw_sprites(byte y, byte *pBuf, gfx_object *pList, byte bCount) {
         // simplest case
         for (x = 0; x < bWidth; x++) {
           cOld = d[0];
-          mask = pgm_read_byte(s);
-          cNew = pgm_read_byte(s + 32);
+          mask = pgm_read_byte(s); // Mask is the first 32 bytes.
+          cNew = pgm_read_byte(s + 32); // Pattern is the next 32.
           s++;
           cOld &= mask;
           cOld |= cNew;
           *d++ = cOld;
         }
-      } else if (pObject->y + 8 < y)  {
+      } else if (pObject->y + 8 < y)  { // 8 is the half of sprite height (in 16x16px).
         // only bottom half of sprite drawn
         for (x = 0; x < bWidth; x++) {
-          mask = pgm_read_byte(s);
-          cNew = pgm_read_byte(s + 32);
+          mask = pgm_read_byte(s); // Mask is the first 32 bytes.
+          cNew = pgm_read_byte(s + 32); // Pattern is the next 32.
           s++;
           mask >>= (8 - bYOff);
           mask |= (0xff << bYOff);
@@ -114,8 +116,8 @@ void draw_sprites(byte y, byte *pBuf, gfx_object *pList, byte bCount) {
       } else if (pObject->y > y) {
         // only top half of sprite drawn
         for (x = 0; x < bWidth; x++) {
-          mask = pgm_read_byte(s);
-          cNew = pgm_read_byte(s + 32);
+          mask = pgm_read_byte(s); // Mask is the first 32 bytes.
+          cNew = pgm_read_byte(s + 32); // Pattern is the next 32.
           s++;
           mask <<= bYOff;
           mask |= (0xff >> (8 - bYOff)); // exposed bits set to 1
@@ -130,9 +132,9 @@ void draw_sprites(byte y, byte *pBuf, gfx_object *pList, byte bCount) {
         byte mask2, cNew2;
         for (x = 0; x < bWidth; x++) {
           mask = pgm_read_byte(s);
-          mask2 = pgm_read_byte(s + 16);
-          cNew = pgm_read_byte(s + 32);
-          cNew2 = pgm_read_byte(s + 48);
+          mask2 = pgm_read_byte(s + 16); // 16 is half of 32 bytes needed in 16x16 sprite
+          cNew = pgm_read_byte(s + 32); // 32 is the size of a block (in bytes) in 16x16 sprite
+          cNew2 = pgm_read_byte(s + 48); // 48 is 16 (first half) + 32 (block size).
           s++;
           mask >>= (8 - bYOff);
           cNew >>= (8 - bYOff);
@@ -148,17 +150,23 @@ void draw_sprites(byte y, byte *pBuf, gfx_object *pList, byte bCount) {
       }
     } else {
       // 8x8 sprite
-      s = (byte *)&ucSprites[bSprite * 16];
+      // A 8x8px sprite has 8 mask bytes followed by 8 pattern bytes. 16 bytes in total.
+      s = (byte *)&ucSprites[bSprite * 16]; // 16 is the sum of 8bytes (mask) + 8bytes (pattern)
       bYOff = pObject->y & 7;
-      bWidth = 8;
-      if (128 - pObject->x < 8)
-        bWidth = 128 - pObject->x;
+      bWidth = 8; // 8 => sprite width. Better in pObject->width.
+
+      // Check if sprite is touching the sides of the screen.
+      if (128 - pObject->x < 8) { // 128 SCREEN_WIDTH, 8 sprite width
+        bWidth = 128 - pObject->x; // bWidth is only for print the portion of the sprite visible in the loop.
+      }
+
       for (x = 0; x < bWidth; x++) {
-        mask = pgm_read_byte(s);
-        cNew = pgm_read_byte(s + 8);
+        mask = pgm_read_byte(s); // // Mask is the first 8 bytes.
+        cNew = pgm_read_byte(s + 8); // Pattern is the next 8.
         s++;
-        if (bYOff) // needs to be shifted
-        {
+
+        if (bYOff) {
+          // needs to be shifted
           if (pObject->y > y) {
             mask <<= bYOff;
             mask |= (0xff >> (8 - bYOff)); // exposed bits set to 1
@@ -396,7 +404,7 @@ _Bool check_collision() {
       (background_data[next_pos_top] == 1) ||
       (background_data[next_pos_bottom] == 1) ||
       (background_data[prev_pos_bottom] == 1) ||
-      (player->on_ground == 0 && check_ground())
+      (player->on_ground == 0 && check_ground_for(player))
   ) {
     return 1;
   }
@@ -404,13 +412,13 @@ _Bool check_collision() {
   return 0;
 }
 
-_Bool check_ground() {
+_Bool check_ground_for(gfx_object_ptr sprite) {
   // "2" is the player height in 'pages' => 16 >> 3 = 2
-  int current_row = ((background.y_page + player->y_page + 2) % PLAYFIELD_HEIGHT) * PLAYFIELD_WIDTH,
-      base_1 = (background.x_page + player->x_page) % PLAYFIELD_WIDTH,
-      base_2 = (base_1 + 2) % PLAYFIELD_WIDTH,
-      tile_floor_left = current_row + base_1,
-      tile_floor_right = current_row + base_2;
+  int current_row = ((background.y_page + sprite->y_page + 2) % PLAYFIELD_HEIGHT) * PLAYFIELD_WIDTH,
+      sprite_top_left_in_grid = (background.x_page + sprite->x_page) % PLAYFIELD_WIDTH,
+      sprite_top_right_in_grid = (sprite_top_left_in_grid + 2) % PLAYFIELD_WIDTH,
+      tile_floor_left = current_row + sprite_top_left_in_grid,
+      tile_floor_right = current_row + sprite_top_right_in_grid;
 
   if (background_data[tile_floor_left] == 1 || background_data[tile_floor_right] == 1) {
     return 1;
@@ -484,16 +492,6 @@ void loop() {
         render_ready = 1;
       }
     }
-
-      /*if ((analogRead(2) >= 0) && (analogRead(2) < 100)){
-        render_ready = 0;
-        controls_move_background_to_right(&background);
-      }
-
-      if ((analogRead(2) > 200) && (analogRead(2) < 500)){
-        render_ready = 0;
-        controls_move_background_to_left(&background);
-      }*/
 #endif
 
     if (background.x > TILEMAP_MAX_WIDTH_SCROLL) {
@@ -512,15 +510,16 @@ void loop() {
       reload_play_field();
     }
 
-    // TODO: este check collision es constante; los calculos deben cachearse en el objeto player
-    // o background
+    // TODO: este check collision es constante;
+    //  los calculos deben cachearse en el objeto player o background
     if (
         (player->on_ground == 0) || (player->on_ground == 1 && !check_collision())
     ) {
       player_apply_gravity(player);
     }
 
-    if (check_ground()) {
+    // Check ground se hace a cada frame, y es costoso...
+    if (check_ground_for(player)) {
       player_fix_ground_position(player);
     }
 
