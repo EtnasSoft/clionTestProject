@@ -15,7 +15,7 @@ void plot_point(byte x, byte y) {
   byte currentBackgroundData = background_data[(currentRow * PLAYFIELD_WIDTH) + currentCol];
 
   // Use the fact that x * MODULE = x << 3
-  memcpy_P(bTemp, &ucTiles[(currentBackgroundData << 3) + offsetX], 1);
+  _memcpy(bTemp, &ucTiles[(currentBackgroundData << 3) + offsetX], 1);
   bTemp[0] |= (1 << offsetY);
   screen_driver_set_position(x, currentRow);
   i2c_driver_write_data(bTemp, 1);
@@ -60,7 +60,7 @@ void plot_text(int x, int y, PGM_P s) {
 
     for (uint8_t col = 0 ; col < 6; col++) {
       screen_driver_set_position(x, currentRow);
-      memcpy_P(bTemp, &charMap[c-32][col], 1);
+      _memcpy(bTemp, &charMap[c-32][col], 1);
       i2c_driver_write_data(bTemp, 1);
       x++;
     }

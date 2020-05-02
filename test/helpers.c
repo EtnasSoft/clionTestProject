@@ -1,7 +1,6 @@
 #include "types.h"
 #include "helpers.h"
 #include <stdio.h>
-
 void helpers_print_map(map_game_ptr map) {
   printf("Map height: %i\n", map->height);
   printf("Map width: %i\n", map->width);

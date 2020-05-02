@@ -14,6 +14,13 @@
 #include "plot.h"
 #include "player.h"
 
+//#include <stdio.h>
+
+// only for text...
+//#include <stdlib.h>       // calloc
+//#include <stdarg.h>       // va_*
+//#include <string.h>       // strlen, strcpy
+
 // DEFINES
 // ////////////////////////////////////////////////////////////////////
 #define EncoderClick A0 // A0 PB5, pin 1 (RESET)
@@ -23,11 +30,13 @@
 // ////////////////////////////////////////////////////////////////////
 gfx_object_ptr player = object_list; // By default, player points to object_list[0]
 _Bool render_ready = 1;
+
+#ifdef ANALOG
 const int EncoderA = 2; // PB2, pin 7 (INT0)
 const int EncoderB = 1; // PB1, pin 6
-
 volatile int a0;
 volatile int c0;
+#endif
 
 // FUNCTIONS
 // ////////////////////////////////////////////////////////////////////
@@ -284,7 +293,7 @@ void draw_play_field() {
 
         c = background_data[iOffset];
         s = (byte *)&ucTiles[(c * MODULE) + bXOff];
-        memcpy_P(d, s, MODULE - bXOff);
+        _memcpy(d, s, MODULE - bXOff);
 
         d += (MODULE - bXOff);
         bXOff = 0;
@@ -304,7 +313,7 @@ void draw_play_field() {
 
         c = background_data[iOffset];
         s = (byte *)&ucTiles[c * MODULE];
-        memcpy_P(d, s, bXOff);
+        _memcpy(d, s, bXOff);
       }
     }
 
@@ -321,7 +330,7 @@ void draw_play_field() {
 }
 
 void reload_play_field(void) {
-  engine_background_reload();
+  engine_background_reload(&map);
   draw_play_field();
 }
 
@@ -437,6 +446,7 @@ void setup() {
   // Initializing screen drivers
   i2c_driver_init(SSD1306_SA);
   screen_driver_init(0, 0);
+
   //screen_driver_fill(0x00);
 
   // Initializing the background and loading the current level
@@ -494,19 +504,19 @@ void loop() {
     }
 #endif
 
-    if (background.x > TILEMAP_MAX_WIDTH_SCROLL) {
+    if (background.x > map.max_scroll_x) {
       engine_background_set_pos(0, background.y);
       reload_play_field();
     } else if (background.x < 0) {
-      engine_background_set_pos(TILEMAP_MAX_WIDTH_SCROLL, background.y);
+      engine_background_set_pos(map.max_scroll_x, background.y);
       reload_play_field();
     }
 
-    if (background.y > TILEMAP_MAX_HEIGHT_SCROLL) {
+    if (background.y > map.max_scroll_y) {
       engine_background_set_pos(background.x, 0);
       reload_play_field();
     } else if (background.y < 0) {
-      engine_background_set_pos(background.x, TILEMAP_MAX_HEIGHT_SCROLL);
+      engine_background_set_pos(background.x, map.max_scroll_y);
       reload_play_field();
     }
 
@@ -523,7 +533,7 @@ void loop() {
       player_fix_ground_position(player);
     }
 
-    engine_background_update();
+    engine_background_update(&map);
     player_update(player);
 
     if (background.need_render || player->need_render) {

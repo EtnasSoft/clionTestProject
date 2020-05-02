@@ -1,7 +1,13 @@
 #include "types.h"
 #include "engine.h"
 #include <stdbool.h>
+
+#ifdef TEST
+#include "../test/support/Arduino/stub_arduino.h"
+unsigned long millis(void);
+#else
 #include <Arduino.h>
+#endif
 
 void engine_init_frame_control() {
   engine_set_frame_duration(30);
@@ -83,7 +89,8 @@ void engine_background_set_pos(uint16_t x, uint16_t y) {
   background.y_page = y >> 3;
 }
 
-void engine_background_adjust_rows() {
+// TODO: &map have to be passed as param
+void engine_background_adjust_rows(map_game_ptr map) {
   int currentRow = background.y_page,
       currentCol = background.x_page,
       offsetCol = currentCol % PLAYFIELD_WIDTH,
@@ -95,8 +102,8 @@ void engine_background_adjust_rows() {
       nextPlayFieldByte = nextPlayFieldRow * PLAYFIELD_WIDTH;
 
   // Tiles
-  int prevTileRow = ((currentRow == 0 ? TILEMAP_HEIGHT : currentRow) - 1) * TILEMAP_WIDTH,
-      nextTileRow = ((currentRow + VIEWPORT_HEIGHT) % TILEMAP_HEIGHT) * TILEMAP_WIDTH,
+  int prevTileRow = ((currentRow == 0 ? map->height : currentRow) - 1) * map->width,
+      nextTileRow = ((currentRow + VIEWPORT_HEIGHT) % map->height) * map->width,
       nextTileByte,
       prevTileByte,
       carry;
@@ -113,12 +120,12 @@ void engine_background_adjust_rows() {
   nextPlayFieldByte += offsetCol;
 
   for (byte x = 0; x < PLAYFIELD_WIDTH; x++) {
-    carry = (currentCol + x) % TILEMAP_WIDTH;
+    carry = (currentCol + x) % map->width;
     nextTileByte = (nextTileRow + carry);
     prevTileByte = (prevTileRow + carry);
 
-    memcpy_P(&background_data[prevPlayFieldByte++], &map.data[prevTileByte], 1);
-    memcpy_P(&background_data[nextPlayFieldByte++], &map.data[nextTileByte], 1);
+    _memcpy(&background_data[prevPlayFieldByte++], &map->data[prevTileByte], 1);
+    _memcpy(&background_data[nextPlayFieldByte++], &map->data[nextTileByte], 1);
 
     if (nextPlayFieldByte % PLAYFIELD_WIDTH == 0) {
       prevPlayFieldByte -= PLAYFIELD_WIDTH;
@@ -127,7 +134,8 @@ void engine_background_adjust_rows() {
   }
 }
 
-void engine_background_adjust_cols() {
+// TODO: &map have to be passed as param
+void engine_background_adjust_cols(map_game_ptr map) {
   byte currentRow = background.y_page,
       currentCol = background.x_page,
       offsetRow = currentRow % PLAYFIELD_HEIGHT,
@@ -136,7 +144,7 @@ void engine_background_adjust_cols() {
 
   int nextTileByte,
       prevTileByte,
-      currentTileByte = currentRow * TILEMAP_WIDTH,
+      currentTileByte = currentRow * map->width,
       nextPlayFieldByte = currentPlayFieldByte + ((offsetCol + VIEWPORT_WIDTH) % PLAYFIELD_WIDTH),
       prevPlayFieldByte = offsetCol == 0
                           ? currentPlayFieldByte + PLAYFIELD_WIDTH - 1
@@ -146,37 +154,37 @@ void engine_background_adjust_cols() {
     prevPlayFieldByte += PLAYFIELD_WIDTH;
   }
 
-  nextTileByte = currentTileByte + ((currentCol + VIEWPORT_WIDTH) % TILEMAP_WIDTH);
+  nextTileByte = currentTileByte + ((currentCol + VIEWPORT_WIDTH) % map->width);
   prevTileByte = currentCol == 0
                  ? currentTileByte + PLAYFIELD_WIDTH - 1
                  : currentTileByte + (currentCol -1);
 
   for (byte x = 0; x < PLAYFIELD_HEIGHT; x++) {
-    memcpy_P(&background_data[nextPlayFieldByte], &map.data[nextTileByte], 1);
-    memcpy_P(&background_data[prevPlayFieldByte], &map.data[prevTileByte], 1);
+    _memcpy(&background_data[nextPlayFieldByte], &map->data[nextTileByte], 1);
+    _memcpy(&background_data[prevPlayFieldByte], &map->data[prevTileByte], 1);
 
     nextPlayFieldByte = (nextPlayFieldByte + PLAYFIELD_WIDTH) % PLAYFIELD_SIZE;
     prevPlayFieldByte = (prevPlayFieldByte + PLAYFIELD_WIDTH) % PLAYFIELD_SIZE;
-    nextTileByte = (nextTileByte + TILEMAP_WIDTH) % TILEMAP_SIZE;
-    prevTileByte = (prevTileByte + TILEMAP_WIDTH) % TILEMAP_SIZE;
+    nextTileByte = (nextTileByte + map->width) % map->size;
+    prevTileByte = (prevTileByte + map->width) % map->size;
   }
 }
 
-void engine_background_update() {
+void engine_background_update(map_game_ptr map) {
   if (background.x != background.x_old) {
     background.x_old = background.x;
-    engine_background_adjust_cols();
+    engine_background_adjust_cols(map);
     background.need_render = 1;
   }
 
   if (background.y != background.y_old) {
     background.y_old = background.y;
-    engine_background_adjust_rows();
+    engine_background_adjust_rows(map);
     background.need_render = 1;
   }
 }
 
-void engine_background_reload() {
+void engine_background_reload(map_game_ptr map) {
   byte x, y, currentPlayFieldByte, nextPlayFieldByte,
       currentRow = background.y_page,
       currentCol = background.x_page,
@@ -191,18 +199,18 @@ void engine_background_reload() {
     nextPlayFieldByte = currentPlayFieldByte;
 
     // Use the fact that 32 * x = x << 5
-    nextTileByte = ((currentRow + y) % TILEMAP_HEIGHT) * TILEMAP_WIDTH;
+    nextTileByte = ((currentRow + y) % map->height) * map->width;
     nextTileByte += currentCol;
 
     for (x = 0; x < PLAYFIELD_WIDTH; x++) {
-      memcpy_P(&background_data[nextPlayFieldByte++], &map.data[nextTileByte++], 1);
+      _memcpy(&background_data[nextPlayFieldByte++], &map->data[nextTileByte++], 1);
 
       if ((nextPlayFieldByte % PLAYFIELD_WIDTH) == 0) {
         nextPlayFieldByte -= PLAYFIELD_WIDTH;
       }
 
-      if ((nextTileByte % TILEMAP_WIDTH) == 0) {
-        nextTileByte -= TILEMAP_WIDTH;
+      if ((nextTileByte % map->width) == 0) {
+        nextTileByte -= map->width;
       }
     }
   }

@@ -31,10 +31,10 @@ int engine_background_set(const background_game *new_background_config);
 
 void engine_background_set_pos(uint16_t x, uint16_t y);
 
-void engine_background_adjust_rows(void);
-void engine_background_adjust_cols(void);
-void engine_background_update(void);
-void engine_background_reload(void);
+void engine_background_update(map_game_ptr map);
+void engine_background_adjust_rows(map_game_ptr map);
+void engine_background_adjust_cols(map_game_ptr map);
+void engine_background_reload(map_game_ptr map);
 
 //void engine_background_reload(background_game_ptr background, map_game_ptr map);
 //void engine_background_adjust(background_game_ptr background, map_game_ptr map);

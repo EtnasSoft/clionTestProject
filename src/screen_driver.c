@@ -131,15 +131,26 @@ void screen_driver_set_position(int x, int y) {
   screen_driver_write_command(0x10 | ((x >> 4) & 0xf)); // upper col addr
 }
 
+/**
+ * screen_driver_fill
+ *
+ * Patterns:
+ * 0x00 Blank
+ * 0xff Fill
+ * 0xaa odd lines
+ * 0x55 even lines
+ *
+ * @param ucData
+ */
 void screen_driver_fill(unsigned char data) {
-  int x;
-  unsigned char temp[SCREEN_WIDTH];
+  byte x, y;
+  unsigned char temp[VIEWPORT_WIDTH];
 
-  memset(temp, data, SCREEN_WIDTH);
-
-  for (x = 0; x < VIEWPORT_HEIGHT; x++) {
-    screen_driver_set_position(0, x);
-    i2c_driver_write_data(temp, SCREEN_WIDTH);
+  memset(temp, data, VIEWPORT_WIDTH);
+  for (y = 0; y < VIEWPORT_HEIGHT; y++) {
+    screen_driver_set_position(0, y);
+    for (x = 0; x < VIEWPORT_HEIGHT; x++) {
+      i2c_driver_write_data(temp, VIEWPORT_WIDTH);
+    }
   }
 }
-

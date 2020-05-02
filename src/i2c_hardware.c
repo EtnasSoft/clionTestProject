@@ -6,9 +6,6 @@
 #include "../test/support/Arduino/wiring.h"
 #else
 #include <Arduino.h>
-//#include <wiring.c>
-// #include "../test/support/avr/stub_io.h"
-// #include "../test/support/Arduino/wiring.h"
 #endif
 
 void i2c_hardware_begin(byte addr) {

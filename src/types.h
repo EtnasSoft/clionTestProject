@@ -39,20 +39,6 @@
 #define PLAYFIELD_HEIGHT (VIEWPORT_HEIGHT + EDGES) // AXIS Y: horizontal rows, map height size; min 8+2 (SCREEN_HEIGHT / 8) + Edges
 #define PLAYFIELD_SIZE (PLAYFIELD_WIDTH * PLAYFIELD_HEIGHT) // AXIS Y: horizontal rows, map height size; min 8+2 (SCREEN_HEIGHT / 8) + Edges
 
-// TODO: estas variables ya están definidas en el assets, en el 'level' correspondiente...
-//  no tiene sentido esta duplicidad.
-#define TILEMAP_HEIGHT 8
-#define TILEMAP_WIDTH 128
-#define TILEMAP_SIZE (TILEMAP_HEIGHT * TILEMAP_WIDTH)
-
-#define TILEMAP_MAX_HEIGHT_SCROLL ((TILEMAP_HEIGHT - 1) * MODULE) + 7 // 248
-#define TILEMAP_MAX_WIDTH_SCROLL ((TILEMAP_WIDTH - 1) * MODULE) + 7 // 248
-
-// ALIAS
-#define SCREEN_BUFFER_WIDTH PLAYFIELD_WIDTH    // 18
-#define SCREEN_BUFFER_HEIGHT PLAYFIELD_HEIGHT   // 10
-#define SCREEN_BUFFER_SIZE PLAYFIELD_SIZE // 180
-
 #define DIRECT_PORT
 #define I2CPORT PORTB
 #define SAFE_DELAY 0
@@ -66,11 +52,8 @@
 // ////////////////////////////////////////////////////////////////////
 typedef uint8_t byte;
 
-// Define the structure of the config
-typedef struct {
-  int x;
-  int y;
-} config_t;
+// uint8_t  -> 1 byte   -> 2^8    -> max. 256
+// int      -> 2 bytes  -> 2^16   -> max. 65536
 
 // Define the structure of the FX Objects
 typedef struct gfx_object_typ {
@@ -93,8 +76,7 @@ typedef struct gfx_object_typ {
   _Bool need_render;
 } gfx_object, *gfx_object_ptr;
 
-// TODO: Los tipos int son excesivos. Por encima del byte (uint8_t), estaría:
-// - uint16_t con 65535; más que suficiente.
+
 
 // Define the structure of the background
 typedef struct background_game_typ {
@@ -115,6 +97,8 @@ typedef struct map_game_typ {
   byte width;
   byte height;
   int size;
+  int max_scroll_x;
+  int max_scroll_y;
   byte *data;
 } map_game, *map_game_ptr;
 
