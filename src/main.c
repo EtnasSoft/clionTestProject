@@ -398,22 +398,24 @@ void move_background() {
 void init_sprites() {
   memset(object_list, 0, sizeof(object_list));
   player_init(player);
+  update_collisions(player);
 }
 
-_Bool check_collision() {
-  int current_row = (background.y_page + player->y_page % PLAYFIELD_HEIGHT) * PLAYFIELD_WIDTH,
-    base = (background.x_page + player->x_page) % PLAYFIELD_WIDTH,
-    prev_pos_top = current_row + base,
-    prev_pos_bottom = prev_pos_top + PLAYFIELD_WIDTH,
-    next_pos_top = current_row + ((base + 2) % PLAYFIELD_WIDTH),
-    next_pos_bottom = next_pos_top + PLAYFIELD_WIDTH;
+void update_collisions(gfx_object_ptr sprite) {
+  byte sprite_width = sprite->width >> 3; // We need to get the sprite width in 'pages'
 
+  sprite->current_row_in_grid = ((background.y_page + sprite->y_page) % PLAYFIELD_HEIGHT) * PLAYFIELD_WIDTH;
+  sprite->current_top_left_pos_in_grid = sprite->current_row_in_grid + ((background.x_page + sprite->x_page) % PLAYFIELD_WIDTH);
+  sprite->current_top_right_pos_in_grid = sprite->current_row_in_grid + ((sprite->current_top_left_pos_in_grid + sprite_width) % PLAYFIELD_WIDTH);
+}
+
+_Bool check_collision(gfx_object_ptr sprite) {
   if (
-      (background_data[prev_pos_top] == 1) ||
-      (background_data[next_pos_top] == 1) ||
-      (background_data[next_pos_bottom] == 1) ||
-      (background_data[prev_pos_bottom] == 1) ||
-      (player->on_ground == 0 && check_ground_for(player))
+      (background_data[sprite->current_top_left_pos_in_grid ] == 1) ||
+      (background_data[sprite->current_top_right_pos_in_grid] == 1) ||
+      (background_data[sprite->current_top_left_pos_in_grid + PLAYFIELD_WIDTH] == 1) ||
+      (background_data[sprite->current_top_right_pos_in_grid + PLAYFIELD_WIDTH] == 1) ||
+      (sprite->on_ground == 0 && check_ground_for(sprite))
   ) {
     return 1;
   }
@@ -422,18 +424,12 @@ _Bool check_collision() {
 }
 
 _Bool check_ground_for(gfx_object_ptr sprite) {
-  // "2" is the player height in 'pages' => 16 >> 3 = 2
-  int current_row = ((background.y_page + sprite->y_page + 2) % PLAYFIELD_HEIGHT) * PLAYFIELD_WIDTH,
-      sprite_top_left_in_grid = (background.x_page + sprite->x_page) % PLAYFIELD_WIDTH,
-      sprite_top_right_in_grid = (sprite_top_left_in_grid + 2) % PLAYFIELD_WIDTH,
-      tile_floor_left = current_row + sprite_top_left_in_grid,
-      tile_floor_right = current_row + sprite_top_right_in_grid;
+  byte ground_pos = (PLAYFIELD_WIDTH * sprite->height >> 3); // We need to get the sprite height in 'pages'
 
-  if (background_data[tile_floor_left] == 1 || background_data[tile_floor_right] == 1) {
-    return 1;
-  }
-
-  return 0;
+  return (
+    background_data[sprite->current_top_left_pos_in_grid + ground_pos] == 1 ||
+    background_data[sprite->current_top_right_pos_in_grid + ground_pos] == 1
+  );
 }
 
 void setup() {
@@ -478,9 +474,11 @@ void loop() {
     if (digitalRead(2) == HIGH && render_ready == 1) {
       render_ready = 0;
       controls_move_background_to_right(&background);
+      update_collisions(player);
 
-      if (check_collision()) {
+      if (check_collision(player)) {
         controls_move_background_to_left(&background);
+        update_collisions(player);
         render_ready = 1;
       }
     }
@@ -488,9 +486,11 @@ void loop() {
     if (digitalRead(1) == HIGH && render_ready == 1) {
       render_ready = 0;
       controls_move_background_to_left(&background);
+      update_collisions(player);
 
-      if (check_collision()) {
+      if (check_collision(player)) {
         controls_move_background_to_right(&background);
+        update_collisions(player);
         render_ready = 1;
       }
     }
@@ -512,15 +512,13 @@ void loop() {
       reload_play_field();
     }
 
-    // TODO: este check collision es constante;
-    //  los calculos deben cachearse en el objeto player o background
     if (
-        (player->on_ground == 0) || (player->on_ground == 1 && !check_collision())
+        (player->on_ground == 0) || (player->on_ground == 1 && !check_collision(player))
     ) {
       player_apply_gravity(player);
+      update_collisions(player);
     }
 
-    // Check ground se hace a cada frame, y es costoso...
     if (check_ground_for(player)) {
       player_fix_ground_position(player);
     }
@@ -528,13 +526,14 @@ void loop() {
     engine_background_update(&map);
     player_update(player);
 
+
     if (background.need_render || player->need_render) {
       background.need_render = 0;
       player->need_render = 0;
 
       draw_play_field();
 
-      print_hud();
+//      print_hud();
     }
   } // while
 }
@@ -554,6 +553,6 @@ void print_hud() {
   //plot_point(24,20);
   //plot_point(10,4);
 
-  plot_text(0, 0, PSTR("BgX:"));
-  plot_integer(24, 0, background.x);
+  plot_text(0, 0, PSTR("TLP:"));
+  plot_integer(24, 0, player->current_top_left_pos_in_grid);
 }

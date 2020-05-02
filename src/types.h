@@ -57,16 +57,20 @@ typedef uint8_t byte;
 
 // Define the structure of the FX Objects
 typedef struct gfx_object_typ {
+  byte width;
+  byte height;
   int x;
   int y;
-//  int x_main_grid_pos;
-//  int y_main_grid_pos;
+  int current_row_in_grid;
+  int current_col_in_grid;
   int x_old;
   int y_old;
   int x_offset;
   int y_offset;
   int x_page;
   int y_page;
+  int current_top_left_pos_in_grid;
+  int current_top_right_pos_in_grid;
   byte bType;
   byte x_speed;
   int y_speed; // can be negative

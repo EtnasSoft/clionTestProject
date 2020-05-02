@@ -2,6 +2,8 @@
 
 void player_init(gfx_object_ptr player) {
   player->bType = 0x80;
+  player->width = 16;
+  player->height = 16;
   player->x = 56;
   player->x_old = 56;
   player->x_offset = 56 & 7;
