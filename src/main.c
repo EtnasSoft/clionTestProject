@@ -459,14 +459,6 @@ void setup() {
   reload_play_field();
   draw_play_field(); // Needed for draw sprites.
   engine_init_frame_control();
-
-  // Some text...
-  //plot_text(30, 22, PSTR("hello world"));
-  //plot_big_text(40, 35, PSTR("momo"));
-
-  //draw_to(0, 64, 125, 1);
-  //plot_point(24,20);
-  //plot_point(10,4);
 }
 
 void loop() {
@@ -537,7 +529,31 @@ void loop() {
     player_update(player);
 
     if (background.need_render || player->need_render) {
+      background.need_render = 0;
+      player->need_render = 0;
+
       draw_play_field();
+
+      print_hud();
     }
-  }
+  } // while
+}
+
+void print_hud() {
+  // Some text:
+  //char foo = 5 + '0';
+  //plot_char(0, 0, foo);
+  //plot_char(8, 8, 5 + '0');
+  //plot_char(8, 16, 'F');
+  //plot_text(0, 0, PSTR("Player y: "));
+  //plot_integer(54, 0, player->y);
+  //plot_big_text(40, 35, PSTR("MAMAMOO"));
+
+  // Some lines:
+  //draw_to(0, 64, 125, 1);
+  //plot_point(24,20);
+  //plot_point(10,4);
+
+  plot_text(0, 0, PSTR("BgX:"));
+  plot_integer(24, 0, background.x);
 }

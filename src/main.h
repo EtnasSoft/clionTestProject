@@ -15,6 +15,7 @@ void draw_play_field(void);
 
 void setup(void);
 void loop(void);
+void print_hud(void);
 
 // Functions for game (move background and player)
 void move_background_to(_Bool increment);

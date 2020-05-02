@@ -89,7 +89,6 @@ void engine_background_set_pos(uint16_t x, uint16_t y) {
   background.y_page = y >> 3;
 }
 
-// TODO: &map have to be passed as param
 void engine_background_adjust_rows(map_game_ptr map) {
   int currentRow = background.y_page,
       currentCol = background.x_page,
@@ -134,7 +133,6 @@ void engine_background_adjust_rows(map_game_ptr map) {
   }
 }
 
-// TODO: &map have to be passed as param
 void engine_background_adjust_cols(map_game_ptr map) {
   byte currentRow = background.y_page,
       currentCol = background.x_page,
