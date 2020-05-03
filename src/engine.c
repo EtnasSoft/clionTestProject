@@ -65,7 +65,6 @@ void engine_background_init(background_game_ptr background) {
   background->x_page = 0;
   background->y_page = 0;
   background->speed = 1;
-  background->direction = 0;
   background->need_render = 0;
 }
 

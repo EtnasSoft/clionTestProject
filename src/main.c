@@ -28,7 +28,7 @@
 
 // GLOBALS (Player and Game vars)
 // ////////////////////////////////////////////////////////////////////
-gfx_object_ptr player = object_list; // By default, player points to object_list[0]
+sprite_object_ptr player = object_list; // By default, player points to object_list[0]
 _Bool render_ready = 1;
 
 #ifdef ANALOG
@@ -54,11 +54,11 @@ void draw_shifted_char(byte *s1, byte *s2, byte *d, byte bXOff, byte bYOff) {
 }
 
 // Draw the sprites visible on the current line
-void draw_sprites(byte y, byte *pBuf, gfx_object *pList, byte bCount) {
+void draw_sprites(byte y, byte *pBuf, sprite_object *pList, byte bCount) {
   byte i, x, bSize, bSprite, *s, *d;
   byte cOld, cNew, mask, bYOff, bWidth;
 
-  gfx_object *pObject;
+  sprite_object *pObject;
   for (i = 0; i < bCount; i++) {
     pObject = &pList[i];
     bSprite = pObject->bType; // sprite index
@@ -400,7 +400,7 @@ void init_sprites() {
   update_collisions(player);
 }
 
-void update_collisions(gfx_object_ptr sprite) {
+void update_collisions(sprite_object_ptr sprite) {
   byte sprite_width = sprite->width >> 3; // We need to get the sprite width in 'pages'
 
   sprite->current_row_in_grid = ((background.y_page + sprite->y_page) % PLAYFIELD_HEIGHT) * PLAYFIELD_WIDTH;
@@ -408,7 +408,7 @@ void update_collisions(gfx_object_ptr sprite) {
   sprite->current_top_right_pos_in_grid = sprite->current_row_in_grid + ((sprite->current_top_left_pos_in_grid + sprite_width) % PLAYFIELD_WIDTH);
 }
 
-_Bool check_collision(gfx_object_ptr sprite) {
+_Bool check_collision(sprite_object_ptr sprite) {
   if (
       (background_data[sprite->current_top_left_pos_in_grid ] == 1) ||
       (background_data[sprite->current_top_right_pos_in_grid] == 1) ||
@@ -422,7 +422,7 @@ _Bool check_collision(gfx_object_ptr sprite) {
   return 0;
 }
 
-_Bool check_ground_for(gfx_object_ptr sprite) {
+_Bool check_ground_for(sprite_object_ptr sprite) {
   byte ground_pos = (PLAYFIELD_WIDTH * sprite->height >> 3); // We need to get the sprite height in 'pages'
 
   return (

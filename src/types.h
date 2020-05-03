@@ -56,7 +56,7 @@ typedef uint8_t byte;
 // int      -> 2 bytes  -> 2^16   -> max. 65536
 
 // Define the structure of the Sprite objects
-typedef struct gfx_object_typ {
+typedef struct sprite_object_typ {
   byte width;
   byte height;
   byte bType;
@@ -77,9 +77,7 @@ typedef struct gfx_object_typ {
   int current_row_in_grid;
   int current_top_left_pos_in_grid;
   int current_top_right_pos_in_grid;
-} gfx_object, *gfx_object_ptr;
-
-
+} sprite_object, *sprite_object_ptr;
 
 // Define the structure of the background
 typedef struct background_game_typ {
@@ -108,7 +106,7 @@ typedef struct map_game_typ {
 // ////////////////////////////////////////////////////////////////////
 background_game background; // Define the background
 map_game map; // Define the map
-gfx_object object_list[NUMBER_OF_SPRITES]; // Define the game object list
+sprite_object object_list[NUMBER_OF_SPRITES]; // Define the game object list
 byte background_data[PLAYFIELD_SIZE];
 
 

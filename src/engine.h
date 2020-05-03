@@ -40,6 +40,6 @@ void engine_background_reload(map_game_ptr map);
 //void engine_background_adjust(background_game_ptr background, map_game_ptr map);
 //void engine_background_draw(background_game_ptr background);
 //void engine_shifter_char(byte *s1, byte *s2, byte *d, byte bXOff, byte bYOff);
-//void engine_draw_sprites(byte y, byte *pBuf, gfx_object *pList, byte bCount);
+//void engine_draw_sprites(byte y, byte *pBuf, sprite_object *pList, byte bCount);
 
 #endif // ENGINE_H
