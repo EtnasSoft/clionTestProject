@@ -13,7 +13,6 @@ void setUp(void) {
   background.x_page = background.x >> 3;
   background.y_page = background.y >> 3;
   background.speed = 1;
-  background.direction = 0;
 
   engine_background_set(&background);
 }

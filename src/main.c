@@ -198,9 +198,8 @@ void draw_sprites(byte y, byte *pBuf, gfx_object *pList, byte bCount) {
 // Draw the playfield and sprites
 void draw_play_field() {
   byte *s, *sNext, *d, x, y,
+      bXOff, bYOff, iOffset, iOffset2, ty, tx, c,
       bTemp[SCREEN_WIDTH];
-
-  int tx, c, ty, bXOff, bYOff, iOffset, iOffset2;
 
   bXOff = background.x_offset;
   bYOff = background.y_offset;
@@ -213,7 +212,7 @@ void draw_play_field() {
   for (y = 0; y < VIEWPORT_HEIGHT; y++) {
     memset(bTemp, 0, sizeof(bTemp));
 
-    ty = ty % PLAYFIELD_HEIGHT;
+    ty %= PLAYFIELD_HEIGHT;
     tx = background.x_page;
 
     // Draw the playfield characters at the given scroll position
@@ -533,7 +532,7 @@ void loop() {
 
       draw_play_field();
 
-//      print_hud();
+      print_hud();
     }
   } // while
 }
@@ -553,6 +552,6 @@ void print_hud() {
   //plot_point(24,20);
   //plot_point(10,4);
 
-  plot_text(0, 0, PSTR("TLP:"));
-  plot_integer(24, 0, player->current_top_left_pos_in_grid);
+  plot_text(0, 0, PSTR("bgX:"));
+  plot_integer(24, 0, background.x);
 }

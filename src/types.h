@@ -55,22 +55,10 @@ typedef uint8_t byte;
 // uint8_t  -> 1 byte   -> 2^8    -> max. 256
 // int      -> 2 bytes  -> 2^16   -> max. 65536
 
-// Define the structure of the FX Objects
+// Define the structure of the Sprite objects
 typedef struct gfx_object_typ {
   byte width;
   byte height;
-  int x;
-  int y;
-  int current_row_in_grid;
-  int current_col_in_grid;
-  int x_old;
-  int y_old;
-  int x_offset;
-  int y_offset;
-  int x_page;
-  int y_page;
-  int current_top_left_pos_in_grid;
-  int current_top_right_pos_in_grid;
   byte bType;
   byte x_speed;
   int y_speed; // can be negative
@@ -78,6 +66,17 @@ typedef struct gfx_object_typ {
   _Bool on_ground;
   _Bool is_jumping; // prevent keep jumping while jump button is pressed
   _Bool need_render;
+  int x;
+  int y;
+  int x_old;
+  int y_old;
+  byte x_offset;
+  byte y_offset;
+  byte x_page;
+  byte y_page;
+  int current_row_in_grid;
+  int current_top_left_pos_in_grid;
+  int current_top_right_pos_in_grid;
 } gfx_object, *gfx_object_ptr;
 
 
@@ -88,12 +87,11 @@ typedef struct background_game_typ {
   int y;
   int x_old;
   int y_old;
-  int x_offset;
-  int y_offset;
-  int x_page;
-  int y_page;
+  byte x_offset;
+  byte y_offset;
+  byte x_page;
+  byte y_page;
   byte speed;
-  _Bool direction;
   _Bool need_render;
 } background_game, *background_game_ptr;
 

@@ -46,7 +46,6 @@ void test_engine_background_init_should_create_a_background(void) {
   TEST_ASSERT_EQUAL_INT(default_background_x_page, background.x_page);
   TEST_ASSERT_EQUAL_INT(default_background_y_page, background.y_page);
   TEST_ASSERT_EQUAL_INT(default_background_speed, background.speed);
-  TEST_ASSERT_EQUAL_INT(default_background_direction, background.direction);
 }
 
 void test_engine_background_set_should_set_the_given_params_in_background(void) {
@@ -67,7 +66,6 @@ void test_engine_background_set_should_set_the_given_params_in_background(void) 
   TEST_ASSERT_EQUAL_INT(new_background_x, background.x);
   TEST_ASSERT_EQUAL_INT(new_background_y, background.y);
   TEST_ASSERT_EQUAL_INT(new_background_speed, background.speed);
-  TEST_ASSERT_EQUAL_INT(new_background_direction, background.direction);
 }
 
 void test_engine_background_config_get_should_retrieves_the_current_background_params(void) {
