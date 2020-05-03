@@ -41,7 +41,7 @@ https://github.com/ThingPulse/esp8266-oled-ssd1306/blob/master/src/OLEDDisplay.h
 #define SSD1306_COMSCANDEC 		0xC8
 #define SSD1306_SEGREMAP 		0xA0
 
-void screen_driver_init(int flip, int invert) {
+void screen_driver_init(byte flip, byte invert) {
   unsigned char oled_initbuf[] = {
       0x00,
       SSD1306_DISPLAYOFF,
@@ -125,7 +125,7 @@ void screen_driver_set_contrast(unsigned char contrast) {
   screen_driver_write_command2(SSD1306_SETCONTRAST, contrast); // Set Contrast Control
 }
 
-void screen_driver_set_position(int x, int y) {
+void screen_driver_set_position(byte x, byte y) {
   screen_driver_write_command(SSD1306_PAM_PAGE_START | y); // go to page Y
   screen_driver_write_command(0x00 | (x & 0xf));        // lower col addr
   screen_driver_write_command(0x10 | ((x >> 4) & 0xf)); // upper col addr

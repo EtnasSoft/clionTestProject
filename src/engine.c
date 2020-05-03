@@ -89,22 +89,19 @@ void engine_background_set_pos(uint16_t x, uint16_t y) {
 }
 
 void engine_background_adjust_rows(map_game_ptr map) {
-  int currentRow = background.y_page,
-      currentCol = background.x_page,
-      offsetCol = currentCol % PLAYFIELD_WIDTH,
-      offsetRow = currentRow % PLAYFIELD_HEIGHT,
-
+  byte offsetCol = background.x_page % PLAYFIELD_WIDTH,
+      offsetRow = background.y_page % PLAYFIELD_HEIGHT,
       prevPlayFieldRow = (offsetRow == 0 ? PLAYFIELD_HEIGHT : offsetRow) - 1,
       nextPlayFieldRow = (offsetRow + VIEWPORT_HEIGHT) % PLAYFIELD_HEIGHT,
-      prevPlayFieldByte = prevPlayFieldRow * PLAYFIELD_WIDTH,
-      nextPlayFieldByte = nextPlayFieldRow * PLAYFIELD_WIDTH;
+      carry;
 
   // Tiles
-  int prevTileRow = ((currentRow == 0 ? map->height : currentRow) - 1) * map->width,
-      nextTileRow = ((currentRow + VIEWPORT_HEIGHT) % map->height) * map->width,
+  int prevPlayFieldByte = prevPlayFieldRow * PLAYFIELD_WIDTH,
+      nextPlayFieldByte = nextPlayFieldRow * PLAYFIELD_WIDTH,
+      prevTileRow = ((background.y_page == 0 ? map->height : background.y_page) - 1) * map->width,
+      nextTileRow = ((background.y_page + VIEWPORT_HEIGHT) % map->height) * map->width,
       nextTileByte,
-      prevTileByte,
-      carry;
+      prevTileByte;
 
   if (prevPlayFieldByte >= PLAYFIELD_SIZE) {
     prevPlayFieldByte -= PLAYFIELD_SIZE;
@@ -118,7 +115,7 @@ void engine_background_adjust_rows(map_game_ptr map) {
   nextPlayFieldByte += offsetCol;
 
   for (byte x = 0; x < PLAYFIELD_WIDTH; x++) {
-    carry = (currentCol + x) % map->width;
+    carry = (background.x_page + x) % map->width;
     nextTileByte = (nextTileRow + carry);
     prevTileByte = (prevTileRow + carry);
 
@@ -133,15 +130,13 @@ void engine_background_adjust_rows(map_game_ptr map) {
 }
 
 void engine_background_adjust_cols(map_game_ptr map) {
-  byte currentRow = background.y_page,
-      currentCol = background.x_page,
-      offsetRow = currentRow % PLAYFIELD_HEIGHT,
-      offsetCol = currentCol % PLAYFIELD_WIDTH,
+  byte offsetRow = background.y_page % PLAYFIELD_HEIGHT,
+      offsetCol = background.x_page % PLAYFIELD_WIDTH,
       currentPlayFieldByte = offsetRow * PLAYFIELD_WIDTH;
 
   int nextTileByte,
       prevTileByte,
-      currentTileByte = currentRow * map->width,
+      currentTileByte = background.y_page * map->width,
       nextPlayFieldByte = currentPlayFieldByte + ((offsetCol + VIEWPORT_WIDTH) % PLAYFIELD_WIDTH),
       prevPlayFieldByte = offsetCol == 0
                           ? currentPlayFieldByte + PLAYFIELD_WIDTH - 1
@@ -151,10 +146,10 @@ void engine_background_adjust_cols(map_game_ptr map) {
     prevPlayFieldByte += PLAYFIELD_WIDTH;
   }
 
-  nextTileByte = currentTileByte + ((currentCol + VIEWPORT_WIDTH) % map->width);
-  prevTileByte = currentCol == 0
+  nextTileByte = currentTileByte + ((background.x_page + VIEWPORT_WIDTH) % map->width);
+  prevTileByte = background.x_page == 0
                  ? currentTileByte + PLAYFIELD_WIDTH - 1
-                 : currentTileByte + (currentCol -1);
+                 : currentTileByte + (background.x_page - 1);
 
   for (byte x = 0; x < PLAYFIELD_HEIGHT; x++) {
     _memcpy(&background_data[nextPlayFieldByte], &map->data[nextTileByte], 1);
@@ -183,21 +178,19 @@ void engine_background_update(map_game_ptr map) {
 
 void engine_background_reload(map_game_ptr map) {
   byte x, y, currentPlayFieldByte, nextPlayFieldByte,
-      currentRow = background.y_page,
-      currentCol = background.x_page,
-      offsetCol = currentCol % PLAYFIELD_WIDTH;
+      offsetCol = background.x_page % PLAYFIELD_WIDTH;
 
   int nextTileByte;
 
   for (y = 0; y < PLAYFIELD_HEIGHT; y++) {
-    currentPlayFieldByte = ((currentRow + y) * PLAYFIELD_WIDTH) % PLAYFIELD_SIZE;
+    currentPlayFieldByte = ((background.y_page + y) * PLAYFIELD_WIDTH) % PLAYFIELD_SIZE;
     currentPlayFieldByte += offsetCol;
 
     nextPlayFieldByte = currentPlayFieldByte;
 
     // Use the fact that 32 * x = x << 5
-    nextTileByte = ((currentRow + y) % map->height) * map->width;
-    nextTileByte += currentCol;
+    nextTileByte = ((background.y_page + y) % map->height) * map->width;
+    nextTileByte += background.x_page;
 
     for (x = 0; x < PLAYFIELD_WIDTH; x++) {
       _memcpy(&background_data[nextPlayFieldByte++], &map->data[nextTileByte++], 1);
