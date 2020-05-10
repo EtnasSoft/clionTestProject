@@ -1,3 +1,5 @@
+// INCLUDES
+// ////////////////////////////////////////////////////////////////////
 #include "types.h"
 #include "engine.h"
 #include <stdbool.h>
@@ -9,6 +11,9 @@ unsigned long millis(void);
 #include <Arduino.h>
 #endif
 
+
+// FUNCTIONS
+// ////////////////////////////////////////////////////////////////////
 void engine_init_frame_control() {
   engine_set_frame_duration(30);
   frame_count = 0;

@@ -1,6 +1,6 @@
-/**
- * https://cdn-shop.adafruit.com/datasheets/SSD1306.pdf
- */
+// INCLUDES
+// ////////////////////////////////////////////////////////////////////
+// https://cdn-shop.adafruit.com/datasheets/SSD1306.pdf
 #include "types.h"
 #include "screen_driver.h"
 
@@ -18,6 +18,9 @@ https://github.com/aklomp/attiny85-ssd1306/blob/master/src/ssd1306.c
 https://github.com/ThingPulse/esp8266-oled-ssd1306/blob/master/src/OLEDDisplay.h
 */
 
+
+// DEFINES
+// ////////////////////////////////////////////////////////////////////
 // Command registers:
 #define SSD1306_SETCONTRAST 		0x81
 #define SSD1306_DISPLAYALLON_RESUME 	0xA4
@@ -41,6 +44,9 @@ https://github.com/ThingPulse/esp8266-oled-ssd1306/blob/master/src/OLEDDisplay.h
 #define SSD1306_COMSCANDEC 		0xC8
 #define SSD1306_SEGREMAP 		0xA0
 
+
+// FUNCTIONS
+// ////////////////////////////////////////////////////////////////////
 void screen_driver_init(byte flip, byte invert) {
   unsigned char oled_initbuf[] = {
       0x00,

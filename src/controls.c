@@ -1,6 +1,11 @@
+// INCLUDES
+// ////////////////////////////////////////////////////////////////////
 #include "types.h"
 #include "controls.h"
 
+
+// FUNCTIONS
+// ////////////////////////////////////////////////////////////////////
 void controls_move_background_to_up(background_game_ptr background) {
   background->y += background->speed;
   background->y_offset = background->y & 7;

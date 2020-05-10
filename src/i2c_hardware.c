@@ -1,3 +1,5 @@
+// INCLUDES
+// ////////////////////////////////////////////////////////////////////
 #include "types.h"
 #include "i2c_hardware.h"
 
@@ -8,6 +10,9 @@
 #include <Arduino.h>
 #endif
 
+
+// FUNCTIONS
+// ////////////////////////////////////////////////////////////////////
 void i2c_hardware_begin(byte addr) {
   I2CPORT |= ((1 << SSD1306_SDA) + (1 << SSD1306_SCL));
   I2CDDR |= ((1 << SSD1306_SDA) + (1 << SSD1306_SCL));
